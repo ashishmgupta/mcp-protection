@@ -313,6 +313,7 @@
 
   <div class="nav-section">
     <div class="nav-section-label">Setup</div>
+    <a href="#setup-konnect" class="sub">Kong Konnect (Control Plane)</a>
     <a href="#setup-firewall" class="sub">Firewall Service (EC2)</a>
     <a href="#setup-kong" class="sub">Kong Configuration</a>
     <a href="#setup-plugin-install" class="sub">Plugin Installation</a>
@@ -368,111 +369,105 @@
     <h2>Architecture</h2>
 
     <div class="diagram">
-      <svg viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" font-family="Roboto Mono, monospace" font-size="12">
+      <svg viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg" font-family="Roboto Mono, monospace" font-size="12">
         <defs>
-          <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#5c6bc0"/>
-          </marker>
-          <marker id="arr-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#e53935"/>
-          </marker>
-          <marker id="arr-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#2e7d32"/>
-          </marker>
-          <marker id="arr-purple-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
-            <polygon points="8 0,0 3,8 6" fill="#6a1b9a"/>
-          </marker>
-          <marker id="arr-red-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
-            <polygon points="8 0,0 3,8 6" fill="#e53935"/>
-          </marker>
-          <marker id="arr-green-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
-            <polygon points="8 0,0 3,8 6" fill="#2e7d32"/>
-          </marker>
-          <marker id="arr-red-up" markerWidth="6" markerHeight="8" refX="3" refY="0" orient="auto">
-            <polygon points="0 8,3 0,6 8" fill="#e53935"/>
-          </marker>
-          <marker id="arr-orange-up" markerWidth="6" markerHeight="8" refX="3" refY="0" orient="auto">
-            <polygon points="0 8,3 0,6 8" fill="#e65100"/>
-          </marker>
+          <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#5c6bc0"/></marker>
+          <marker id="arr-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#e53935"/></marker>
+          <marker id="arr-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2e7d32"/></marker>
+          <marker id="arr-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#546e7a"/></marker>
+          <marker id="arr-red-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><polygon points="8 0,0 3,8 6" fill="#e53935"/></marker>
+          <marker id="arr-green-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><polygon points="8 0,0 3,8 6" fill="#2e7d32"/></marker>
+          <marker id="arr-purple-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><polygon points="8 0,0 3,8 6" fill="#6a1b9a"/></marker>
+          <marker id="arr-red-up" markerWidth="6" markerHeight="8" refX="3" refY="0" orient="auto"><polygon points="0 8,3 0,6 8" fill="#e53935"/></marker>
+          <marker id="arr-orange-up" markerWidth="6" markerHeight="8" refX="3" refY="0" orient="auto"><polygon points="0 8,3 0,6 8" fill="#6a1b9a"/></marker>
         </defs>
 
-        <!-- ── BOXES ─────────────────────────────────────────── -->
+        <!-- ── CONTROL PLANE BANNER (top) ──────────────────────── -->
+        <rect x="160" y="8" width="310" height="28" rx="5" fill="#fff8e1" stroke="#f9a825" stroke-width="1.5" stroke-dasharray="4,2"/>
+        <text x="315" y="27" text-anchor="middle" font-weight="700" fill="#e65100" font-size="10">Kong Konnect — Control Plane (cloud.konghq.com)</text>
 
-        <!-- Client -->
-        <rect x="10" y="35" width="118" height="110" rx="6" fill="#e8eaf6" stroke="#5c6bc0" stroke-width="1.5"/>
-        <text x="69" y="60" text-anchor="middle" font-weight="700" fill="#1a237e" font-size="11">MCP Client</text>
-        <text x="69" y="77" text-anchor="middle" fill="#5c6bc0" font-size="10">Claude Code</text>
-        <text x="69" y="92" text-anchor="middle" fill="#5c6bc0" font-size="10">LangChain</text>
-        <text x="69" y="107" text-anchor="middle" fill="#5c6bc0" font-size="10">Custom App</text>
+        <!-- ── DATA PLANE BRACKET ───────────────────────────────── -->
+        <rect x="160" y="50" width="310" height="150" rx="6" fill="none" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3"/>
+        <text x="315" y="46" text-anchor="middle" fill="#2e7d32" font-size="8.5" font-weight="700">DATA PLANE — EC2 ip-172-31-30-4 (54.242.48.109)</text>
 
-        <!-- Kong -->
-        <rect x="175" y="25" width="138" height="130" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
-        <text x="244" y="50" text-anchor="middle" font-weight="700" fill="#1b5e20" font-size="11">Kong Gateway</text>
-        <text x="244" y="67" text-anchor="middle" fill="#388e3c" font-size="10">:8000/mcp</text>
-        <text x="244" y="82" text-anchor="middle" fill="#388e3c" font-size="10">key-auth</text>
-        <text x="244" y="97" text-anchor="middle" fill="#388e3c" font-size="10">request-transformer</text>
-        <line x1="185" y1="108" x2="303" y2="108" stroke="#c8e6c9" stroke-width="1"/>
-        <text x="244" y="122" text-anchor="middle" fill="#1b5e20" font-size="9" font-style="italic">access phase ↑</text>
-        <text x="244" y="136" text-anchor="middle" fill="#4a148c" font-size="9" font-style="italic">response phase ↓</text>
+        <!-- Control plane ↔ data plane sync arrow -->
+        <line x1="315" y1="36" x2="315" y2="50" stroke="#f9a825" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr-gray)"/>
+        <text x="340" y="45" fill="#e65100" font-size="8">config push</text>
 
-        <!-- Firewall -->
-        <rect x="363" y="25" width="158" height="130" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="1.5"/>
-        <text x="442" y="50" text-anchor="middle" font-weight="700" fill="#b71c1c" font-size="11">AI Firewall</text>
-        <text x="442" y="67" text-anchor="middle" fill="#c62828" font-size="10">:5000</text>
-        <text x="442" y="82" text-anchor="middle" fill="#c62828" font-size="10">11 rule engine</text>
-        <line x1="373" y1="93" x2="511" y2="93" stroke="#ffcdd2" stroke-width="1"/>
-        <text x="442" y="107" text-anchor="middle" fill="#c62828" font-size="9">POST /inspect</text>
-        <text x="442" y="120" text-anchor="middle" fill="#c62828" font-size="9">(requests)</text>
-        <text x="442" y="135" text-anchor="middle" fill="#9c27b0" font-size="9">POST /inspect-response</text>
-        <text x="442" y="148" text-anchor="middle" fill="#9c27b0" font-size="9">(responses)</text>
+        <!-- ── MCP CLIENT ────────────────────────────────────────── -->
+        <rect x="10" y="65" width="118" height="110" rx="6" fill="#e8eaf6" stroke="#5c6bc0" stroke-width="1.5"/>
+        <text x="69" y="90" text-anchor="middle" font-weight="700" fill="#1a237e" font-size="11">MCP Client</text>
+        <text x="69" y="107" text-anchor="middle" fill="#5c6bc0" font-size="10">Claude Code</text>
+        <text x="69" y="122" text-anchor="middle" fill="#5c6bc0" font-size="10">LangChain</text>
+        <text x="69" y="137" text-anchor="middle" fill="#5c6bc0" font-size="10">Custom App</text>
 
-        <!-- Atlassian -->
-        <rect x="575" y="45" width="160" height="70" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
-        <text x="655" y="70" text-anchor="middle" font-weight="700" fill="#0d47a1" font-size="11">Atlassian MCP</text>
-        <text x="655" y="87" text-anchor="middle" fill="#1565c0" font-size="10">mcp.atlassian.com</text>
-        <text x="655" y="102" text-anchor="middle" fill="#1565c0" font-size="10">Jira tools</text>
+        <!-- ── KONG GATEWAY (data plane) ────────────────────────── -->
+        <rect x="168" y="58" width="138" height="134" rx="5" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+        <text x="237" y="80" text-anchor="middle" font-weight="700" fill="#1b5e20" font-size="11">Kong Gateway</text>
+        <text x="237" y="97" text-anchor="middle" fill="#388e3c" font-size="10">:8000/mcp</text>
+        <text x="237" y="112" text-anchor="middle" fill="#388e3c" font-size="10">key-auth</text>
+        <text x="237" y="127" text-anchor="middle" fill="#388e3c" font-size="10">request-transformer</text>
+        <line x1="178" y1="138" x2="296" y2="138" stroke="#c8e6c9" stroke-width="1"/>
+        <text x="237" y="152" text-anchor="middle" fill="#1b5e20" font-size="9" font-style="italic">access phase ↑</text>
+        <text x="237" y="166" text-anchor="middle" fill="#4a148c" font-size="9" font-style="italic">response phase ↓</text>
 
-        <!-- ── REQUEST PATH (y=63, left→right) ───────────────── -->
-        <line x1="128" y1="63" x2="175" y2="63" stroke="#5c6bc0" stroke-width="1.5" marker-end="url(#arr-blue)"/>
-        <text x="151" y="56" text-anchor="middle" fill="#5c6bc0" font-size="9">request</text>
+        <!-- ── AI FIREWALL (data plane) ─────────────────────────── -->
+        <rect x="318" y="58" width="150" height="134" rx="5" fill="#ffebee" stroke="#c62828" stroke-width="1.5"/>
+        <text x="393" y="80" text-anchor="middle" font-weight="700" fill="#b71c1c" font-size="11">AI Firewall</text>
+        <text x="393" y="97" text-anchor="middle" fill="#c62828" font-size="10">:5000</text>
+        <text x="393" y="112" text-anchor="middle" fill="#c62828" font-size="10">11 rule engine</text>
+        <line x1="328" y1="122" x2="458" y2="122" stroke="#ffcdd2" stroke-width="1"/>
+        <text x="393" y="136" text-anchor="middle" fill="#c62828" font-size="9">POST /inspect</text>
+        <text x="393" y="150" text-anchor="middle" fill="#9c27b0" font-size="9">POST /inspect-response</text>
+        <text x="393" y="163" text-anchor="middle" fill="#546e7a" font-size="8" font-style="italic">(both on same EC2)</text>
 
-        <line x1="313" y1="63" x2="363" y2="63" stroke="#e53935" stroke-width="1.5" marker-end="url(#arr-red)"/>
-        <text x="338" y="56" text-anchor="middle" fill="#e53935" font-size="9">/inspect</text>
+        <!-- ── ATLASSIAN MCP ─────────────────────────────────────── -->
+        <rect x="530" y="75" width="160" height="70" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+        <text x="610" y="100" text-anchor="middle" font-weight="700" fill="#0d47a1" font-size="11">Atlassian MCP</text>
+        <text x="610" y="117" text-anchor="middle" fill="#1565c0" font-size="10">mcp.atlassian.com</text>
+        <text x="610" y="132" text-anchor="middle" fill="#1565c0" font-size="10">Jira tools</text>
 
-        <line x1="521" y1="63" x2="575" y2="63" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arr-green)"/>
-        <text x="548" y="56" text-anchor="middle" fill="#2e7d32" font-size="9" font-weight="600">200 allow</text>
+        <!-- ── REQUEST PATH ──────────────────────────────────────── -->
+        <line x1="128" y1="93" x2="168" y2="93" stroke="#5c6bc0" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="148" y="86" text-anchor="middle" fill="#5c6bc0" font-size="9">request</text>
 
-        <!-- ── RESPONSE PATH (y=122, right→left) ─────────────── -->
-        <line x1="575" y1="122" x2="521" y2="122" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr-red-l)"/>
-        <text x="548" y="135" text-anchor="middle" fill="#6a1b9a" font-size="9">response</text>
+        <line x1="306" y1="93" x2="318" y2="93" stroke="#e53935" stroke-width="1.5" marker-end="url(#arr-red)"/>
+        <text x="312" y="86" text-anchor="middle" fill="#e53935" font-size="9">/inspect</text>
 
-        <line x1="363" y1="122" x2="313" y2="122" stroke="#9c27b0" stroke-width="1.5" marker-end="url(#arr-red-l)"/>
-        <text x="338" y="135" text-anchor="middle" fill="#9c27b0" font-size="9">/inspect-resp</text>
+        <line x1="468" y1="93" x2="530" y2="93" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arr-green)"/>
+        <text x="499" y="86" text-anchor="middle" fill="#2e7d32" font-size="9" font-weight="600">200 allow</text>
 
-        <line x1="175" y1="122" x2="128" y2="122" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arr-green-l)"/>
-        <text x="151" y="135" text-anchor="middle" fill="#2e7d32" font-size="9" font-weight="600">200 pass</text>
+        <!-- ── RESPONSE PATH ─────────────────────────────────────── -->
+        <line x1="530" y1="148" x2="468" y2="148" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr-purple-l)"/>
+        <text x="499" y="163" text-anchor="middle" fill="#6a1b9a" font-size="9">response</text>
 
-        <!-- ── REQUEST BLOCK PATH (dashed red, y=220) ─────────── -->
-        <path d="M 442 155 L 442 215 L 69 215 L 69 145"
+        <line x1="318" y1="148" x2="306" y2="148" stroke="#9c27b0" stroke-width="1.5" marker-end="url(#arr-red-l)"/>
+        <text x="312" y="163" text-anchor="middle" fill="#9c27b0" font-size="9">/inspect-r</text>
+
+        <line x1="168" y1="148" x2="128" y2="148" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arr-green-l)"/>
+        <text x="148" y="163" text-anchor="middle" fill="#2e7d32" font-size="9">200 pass</text>
+
+        <!-- ── REQUEST BLOCK ─────────────────────────────────────── -->
+        <path d="M 393 192 L 393 255 L 69 255 L 69 175"
               stroke="#e53935" stroke-width="1.5" fill="none" stroke-dasharray="5,3"
               marker-end="url(#arr-red-up)"/>
-        <rect x="188" y="220" width="268" height="20" rx="4" fill="#ffcdd2"/>
-        <text x="322" y="234" text-anchor="middle" fill="#c62828" font-size="10" font-weight="700">403 — request blocked, Atlassian never reached</text>
+        <rect x="170" y="260" width="268" height="20" rx="4" fill="#ffcdd2"/>
+        <text x="304" y="274" text-anchor="middle" fill="#c62828" font-size="10" font-weight="700">403 — request blocked, Atlassian never reached</text>
 
-        <!-- ── RESPONSE BLOCK PATH (dashed purple, y=275) ──────── -->
-        <path d="M 442 155 L 442 275 L 69 275 L 69 145"
+        <!-- ── RESPONSE BLOCK ────────────────────────────────────── -->
+        <path d="M 393 192 L 393 320 L 69 320 L 69 175"
               stroke="#6a1b9a" stroke-width="1.5" fill="none" stroke-dasharray="5,3"
               marker-end="url(#arr-orange-up)"/>
-        <rect x="155" y="280" width="330" height="20" rx="4" fill="#f3e5f5"/>
-        <text x="320" y="294" text-anchor="middle" fill="#6a1b9a" font-size="10" font-weight="700">403 — response blocked, indirect injection in Jira content</text>
+        <rect x="138" y="325" width="330" height="20" rx="4" fill="#f3e5f5"/>
+        <text x="303" y="339" text-anchor="middle" fill="#6a1b9a" font-size="10" font-weight="700">403 — response blocked, indirect injection in Jira content</text>
 
-        <!-- ── LANE LABELS ─────────────────────────────────────── -->
-        <text x="756" y="67" text-anchor="end" fill="#1a237e" font-size="9" font-weight="700">REQUEST →</text>
-        <text x="756" y="120" text-anchor="end" fill="#4a148c" font-size="9" font-weight="700">← RESPONSE</text>
+        <!-- ── LANE LABELS ───────────────────────────────────────── -->
+        <text x="776" y="97" text-anchor="end" fill="#1a237e" font-size="9" font-weight="700">REQUEST →</text>
+        <text x="776" y="150" text-anchor="end" fill="#4a148c" font-size="9" font-weight="700">← RESPONSE</text>
       </svg>
     </div>
 
-    <p>Two inspection points. <strong>Request path (top lane):</strong> Kong intercepts the inbound tool call, POSTs it to <code>/inspect</code>, blocks before Atlassian is contacted if 403. <strong>Response path (bottom lane):</strong> after Atlassian responds, Kong buffers the full response body and POSTs it to <code>/inspect-response</code>, blocking before the client receives anything if indirect injection is detected.</p>
+    <p>Two planes, two inspection points. The <strong>control plane</strong> (Kong Konnect, cloud) holds configuration and pushes it down to the data plane. The <strong>data plane</strong> (EC2) handles all live traffic — Kong Gateway at <code>:8000</code> and the AI Firewall at <code>:5000</code> run side by side on the same instance.</p>
   </section>
 
   <!-- ── PROTOCOLS ── -->
@@ -1026,9 +1021,75 @@ end</code></pre>
   <hr />
 
   <!-- ── SETUP ── -->
-  <section id="setup-firewall">
+  <section id="setup-konnect">
     <h2>Setup</h2>
-    <h3>1 — Firewall Service on EC2</h3>
+    <h3>1 — Kong Konnect Control Plane</h3>
+
+    <p>Kong Konnect is the cloud control plane (<code>cloud.konghq.com</code>). It holds your configuration and pushes it to the data plane. It never handles live MCP traffic — that all goes through the EC2 data plane.</p>
+
+    <h4>How the data plane registers itself</h4>
+    <p>The EC2 instance is not configured in Konnect manually. Instead, Kong on EC2 <strong>dials outbound</strong> to Konnect using a mutual TLS certificate pair. Konnect sees the connection and registers the node by its hostname (<code>ip-172-31-30-4</code>).</p>
+
+    <pre><code class="language-bash"># Connection direction — EC2 initiates, Konnect does not reach in
+EC2 (data plane) ──── outbound HTTPS :443 ────► cloud.konghq.com (control plane)
+                       mutual TLS (cert/key pair)
+                       ◄─── config pushed down ───</code></pre>
+
+    <p>This means no inbound firewall rule is needed on EC2 for the control plane connection. Only port <code>8000</code> needs to be open inbound for MCP client traffic.</p>
+
+    <h4>Setup steps (done once)</h4>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <p>In Konnect: <strong>API Gateway → Gateways → New Gateway</strong>. Name it (e.g. <code>jira-mcp-control-plane</code>). This creates the control plane.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <p>Konnect generates a certificate pair for the data plane. Download it — you get three files:</p>
+        <table>
+          <tr><th>File</th><th>Purpose</th></tr>
+          <tr><td><code>cluster-cert</code></td><td>TLS certificate — data plane identity</td></tr>
+          <tr><td><code>cert-key</code></td><td>TLS private key — never commit this</td></tr>
+          <tr><td><code>config-parameters</code></td><td>Control plane endpoint URL + cluster name</td></tr>
+        </table>
+        <p>These live in the <code>data/</code> folder locally. They are in <code>.gitignore</code> — do not commit them.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <p>Copy the cert files to EC2 and start Kong pointing at Konnect:</p>
+        <pre><code class="language-bash">scp data/* ubuntu@&lt;EC2_IP&gt;:~/certs/
+
+# Kong reads these on startup via kong.conf:
+# cluster_control_plane = &lt;your-cp-endpoint&gt;.cp0.konghq.com:443
+# cluster_cert          = /home/ubuntu/certs/cluster-cert
+# cluster_cert_key      = /home/ubuntu/certs/cert-key
+# cluster_mtls          = pki
+
+sudo kong start</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <p>Kong on EC2 connects to Konnect. The node appears in <strong>Gateways → Data plane nodes</strong> with hostname <code>ip-172-31-30-4</code>. Config pushed from Konnect takes effect immediately.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Config changes:</strong> Run <code>deck gateway sync kong.yaml</code> from your local machine. Deck pushes the config to Konnect, Konnect pushes it to the data plane. You never SSH in to change Kong config.</p>
+    </div>
+  </section>
+
+  <section id="setup-firewall">
+    <h3>2 — Firewall Service on EC2</h3>
 
     <div class="step">
       <div class="step-num">1</div>
@@ -1083,7 +1144,7 @@ systemctl start mcp-firewall</code></pre>
   </section>
 
   <section id="setup-kong">
-    <h3>2 — Kong Configuration</h3>
+    <h3>3 — Kong Configuration</h3>
     <p>Kong is configured declaratively via <code>kong.yaml</code>. Key sections:</p>
 
     <pre><code class="language-yaml">services:
@@ -1121,7 +1182,7 @@ plugins:
   </section>
 
   <section id="setup-plugin-install">
-    <h3>3 — Install the mcp-firewall Plugin</h3>
+    <h3>4 — Install the mcp-firewall Plugin</h3>
     <p>Copy the plugin files to Kong's plugin directory on the EC2 instance.</p>
 
     <pre><code class="language-bash">sudo cp -r plugin/mcp-firewall /usr/local/share/lua/5.1/kong/plugins/
@@ -1141,7 +1202,7 @@ sudo kong restart</code></pre>
   </section>
 
   <section id="setup-response-scanning">
-    <h3>4 — Response Scanning</h3>
+    <h3>5 — Response Scanning</h3>
     <p>Response scanning is built into the <code>mcp-firewall</code> plugin via the Kong <code>response</code> phase — no separate plugin or configuration needed. It activates automatically once the plugin is loaded.</p>
 
     <p>How it works in the plugin (<code>handler.lua</code> v1.1.0):</p>
@@ -1198,7 +1259,7 @@ end</code></pre>
   </section>
 
   <section id="setup-client">
-    <h3>4 — MCP Client (Claude Code)</h3>
+    <h3>6 — MCP Client (Claude Code)</h3>
     <p>Register the Kong endpoint as an MCP server in Claude Code:</p>
 
     <span class="cmd">claude mcp add --transport http jira-kong http://&lt;EC2_IP&gt;:8000/mcp --header "apikey:&lt;YOUR_API_KEY&gt;"</span>
