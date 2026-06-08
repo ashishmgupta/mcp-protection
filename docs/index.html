@@ -392,7 +392,7 @@
 
         <!-- Control plane ↔ data plane sync arrow -->
         <line x1="315" y1="36" x2="315" y2="50" stroke="#f9a825" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr-gray)"/>
-        <text x="340" y="45" fill="#e65100" font-size="8">config push</text>
+        <text x="348" y="43" fill="#e65100" font-size="8">mTLS + config push</text>
 
         <!-- ── MCP CLIENT ────────────────────────────────────────── -->
         <rect x="10" y="65" width="118" height="110" rx="6" fill="#e8eaf6" stroke="#5c6bc0" stroke-width="1.5"/>
@@ -1032,8 +1032,16 @@ end</code></pre>
 
     <pre><code class="language-bash"># Connection direction — EC2 initiates, Konnect does not reach in
 EC2 (data plane) ──── outbound HTTPS :443 ────► cloud.konghq.com (control plane)
-                       mutual TLS (cert/key pair)
-                       ◄─── config pushed down ───</code></pre>
+                       mTLS: both sides present certificates
+                       EC2 presents:    cluster-cert + cert-key
+                       Konnect presents: its own CA cert
+                       ◄─── config pushed down over encrypted channel ───</code></pre>
+
+    <p>This is mutual TLS (mTLS) — not standard one-way TLS. Both sides authenticate each other:</p>
+    <ul>
+      <li>EC2 proves its identity to Konnect using <code>cluster-cert</code> + <code>cert-key</code> — prevents rogue nodes pulling your config</li>
+      <li>EC2 verifies it is talking to the real Konnect CA — prevents your data plane being pointed at a fake control plane</li>
+    </ul>
 
     <p>This means no inbound firewall rule is needed on EC2 for the control plane connection. Only port <code>8000</code> needs to be open inbound for MCP client traffic.</p>
 
