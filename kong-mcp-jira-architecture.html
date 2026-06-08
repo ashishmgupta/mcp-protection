@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kong AI Gateway — Secure MCP Proxy for Jira Cloud</title>
+
+  <!-- Syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/lua.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+
+  <!-- Mermaid diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --sidebar-w: 272px;
+      --sidebar-bg: #0f1724;
+      --sidebar-hover: #1a2538;
+      --sidebar-active-bg: rgba(0,194,181,0.12);
+      --sidebar-active-border: #00c2b5;
+      --sidebar-text: #a8b3c9;
+      --sidebar-text-hover: #e2e8f0;
+      --sidebar-text-active: #00c2b5;
+      --sidebar-section-text: #ffffff;
+      --sidebar-divider: rgba(255,255,255,0.06);
+      --accent: #00c2b5;
+      --accent-dark: #009e94;
+      --content-bg: #ffffff;
+      --content-text: #1a202c;
+      --content-muted: #64748b;
+      --border: #e2e8f0;
+      --table-stripe: #f8fafc;
+      --note-bg: #eff6ff;
+      --note-border: #3b82f6;
+      --warn-bg: #fffbeb;
+      --warn-border: #f59e0b;
+      --code-inline-bg: #f1f5f9;
+      --code-inline-text: #c7254e;
+      --h2-color: #0f172a;
+      --h3-color: #1e293b;
+      --h4-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--content-text);
+      background: #f1f5f9;
+      display: flex;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--sidebar-bg);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+    .sidebar-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--sidebar-divider);
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .sidebar-logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #00c2b5, #0077ff);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: var(--sidebar-text);
+      margin-top: 8px;
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: rgba(0,194,181,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(0,194,181,0.25);
+    }
+
+    .sidebar-nav { flex: 1; padding: 8px 0 24px; }
+
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(168,179,201,0.5);
+      padding: 14px 20px 4px;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 7px 20px;
+      font-size: 13px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.15s, color 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: var(--sidebar-text-hover);
+    }
+    .nav-item.active {
+      background: var(--sidebar-active-bg);
+      color: var(--sidebar-text-active);
+      border-left-color: var(--sidebar-active-border);
+      font-weight: 500;
+    }
+    .nav-item.top-level {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sidebar-section-text);
+      padding: 8px 20px;
+    }
+    .nav-item.top-level:hover { color: var(--accent); }
+    .nav-item.top-level.active { color: var(--sidebar-text-active); }
+    .nav-item.sub-level {
+      padding-left: 34px;
+      font-size: 12.5px;
+      color: #8996b0;
+    }
+    .nav-item.sub-level:hover { color: var(--sidebar-text-hover); }
+
+    .nav-divider {
+      height: 1px;
+      background: var(--sidebar-divider);
+      margin: 8px 16px;
+    }
+
+    .nav-number {
+      display: inline-block;
+      min-width: 18px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-right: 2px;
+    }
+
+    /* ─── MAIN CONTENT ─── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-height: 100vh;
+      padding: 0 0 80px;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #0f1724 0%, #1a2f4a 60%, #0d3b5e 100%);
+      padding: 48px 60px 44px;
+      border-bottom: 3px solid var(--accent);
+    }
+    .page-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .page-header .meta {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    }
+    .meta-badge {
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.08);
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .meta-badge strong { color: rgba(255,255,255,0.9); }
+
+    .doc-body {
+      max-width: 900px;
+      padding: 44px 60px;
+      background: var(--content-bg);
+      min-height: calc(100vh - 130px);
+    }
+
+    /* Section spacing */
+    .doc-section { margin-bottom: 64px; }
+    .doc-section:last-child { margin-bottom: 0; }
+
+    /* Headings */
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--h2-color);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .h2-num {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 32px; height: 32px;
+      background: var(--accent);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--h3-color);
+      margin: 32px 0 12px;
+    }
+    h3::before {
+      content: '▸ ';
+      color: var(--accent);
+      font-size: 12px;
+    }
+    h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--h4-color);
+      margin: 24px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Paragraphs and lists */
+    p { margin-bottom: 14px; }
+    ul, ol { margin: 10px 0 14px 22px; }
+    li { margin-bottom: 6px; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 4px; }
+
+    a { color: #0369a1; text-decoration: none; }
+    a:hover { text-decoration: underline; color: #0284c7; }
+
+    strong { font-weight: 600; }
+    em { font-style: italic; }
+
+    /* Inline code */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      background: var(--code-inline-bg);
+      color: var(--code-inline-text);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+    pre code { background: none; color: inherit; padding: 0; border: none; font-size: 13px; }
+
+    /* Code blocks */
+    .code-wrap {
+      position: relative;
+      margin: 16px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1a1f2e;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .code-lang {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(168,179,201,0.7);
+    }
+    .copy-btn {
+      font-size: 11px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      color: rgba(168,179,201,0.7);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.1); color: #ffffff; }
+    .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+    .code-wrap pre {
+      margin: 0;
+      padding: 16px 18px;
+      overflow-x: auto;
+      background: #1e2030;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .code-wrap pre::-webkit-scrollbar { height: 4px; }
+    .code-wrap pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    /* Mermaid diagram container */
+    .diagram-wrap {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+    .diagram-wrap svg { max-width: 100%; height: auto; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead tr { background: #0f1724; }
+    thead th {
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:nth-child(even) { background: var(--table-stripe); }
+    tbody tr:hover { background: #f0f9ff; }
+    td {
+      padding: 10px 14px;
+      vertical-align: top;
+      color: var(--content-text);
+    }
+    td:first-child { font-weight: 500; }
+
+    /* Callout boxes */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout.note { background: var(--note-bg); border-left: 3px solid var(--note-border); }
+    .callout.warn { background: var(--warn-bg); border-left: 3px solid var(--warn-border); }
+    .callout.tip { background: #f0fdf4; border-left: 3px solid #22c55e; }
+    .callout p { margin: 0; }
+    .callout p + p { margin-top: 6px; }
+
+    /* Ordered steps */
+    .steps { list-style: none; margin: 16px 0 16px 0; padding: 0; counter-reset: steps; }
+    .steps > li {
+      counter-increment: steps;
+      display: flex; gap: 14px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .steps > li::before {
+      content: counter(steps);
+      min-width: 26px; height: 26px;
+      background: var(--accent);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .steps > li > div { flex: 1; }
+
+    /* Sub-section heading with anchor line */
+    .sub-section {
+      margin: 40px 0 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .sub-section:first-of-type { border-top: none; padding-top: 0; }
+
+    /* Horizontal rule */
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    /* Reference links table */
+    .ref-table td:first-child { width: 45%; }
+    .ref-table td a { word-break: break-all; font-size: 12.5px; }
+
+    /* Troubleshooting cards */
+    .ts-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .ts-card-header {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ts-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--h3-color);
+    }
+    .ts-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .ts-status.error { background: #fee2e2; color: #dc2626; }
+    .ts-card-body { padding: 16px; }
+    .ts-card-body p { margin-bottom: 10px; }
+    .ts-card-body ul { margin-left: 18px; }
+
+    /* Back to top */
+    .back-to-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--content-muted);
+      text-decoration: none;
+      margin-top: 8px;
+    }
+    .back-to-top:hover { color: var(--accent); text-decoration: none; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; }
+      .doc-body { padding: 24px 20px; }
+      .page-header { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🔐</div>
+      <div class="sidebar-title">Kong AI Gateway<br>MCP + Jira Cloud</div>
+    </div>
+    <div class="sidebar-subtitle">
+      <span class="badge">Kong 3.12+</span>
+      <span class="badge">decK 3.0</span>
+      <span class="badge">Enterprise</span>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-group-label">Documentation</div>
+
+    <a href="#architecture-overview" class="nav-item top-level">
+      <span class="nav-number">1</span> Architecture Overview
+    </a>
+
+    <a href="#prerequisites" class="nav-item top-level">
+      <span class="nav-number">2</span> Prerequisites
+    </a>
+
+    <a href="#setup-guide" class="nav-item top-level">
+      <span class="nav-number">3</span> Setup Guide
+    </a>
+    <a href="#s31" class="nav-item sub-level">3.1 AWS Marketplace</a>
+    <a href="#s32" class="nav-item sub-level">3.2 Deploy on EC2</a>
+    <a href="#s33" class="nav-item sub-level">3.3 Connect to Konnect</a>
+    <a href="#s34" class="nav-item sub-level">3.4 Create Kong Service</a>
+    <a href="#s35" class="nav-item sub-level">3.5 Create Kong Route</a>
+    <a href="#s36" class="nav-item sub-level">3.6 AI MCP Proxy Plugin</a>
+    <a href="#s37" class="nav-item sub-level">3.7 AI Firewall Plugin</a>
+    <a href="#s38" class="nav-item sub-level">3.8 Jira API Token Auth</a>
+
+    <div class="nav-divider"></div>
+
+    <a href="#deck-yaml" class="nav-item top-level">
+      <span class="nav-number">4</span> Complete decK YAML
+    </a>
+
+    <a href="#python-client" class="nav-item top-level">
+      <span class="nav-number">5</span> Python Client
+    </a>
+
+    <a href="#testing" class="nav-item top-level">
+      <span class="nav-number">6</span> Testing &amp; Validation
+    </a>
+    <a href="#t61" class="nav-item sub-level">6.1 Verify Traffic Flow</a>
+    <a href="#t62" class="nav-item sub-level">6.2 Confirm Pre-Function</a>
+    <a href="#t63" class="nav-item sub-level">6.3 Latency Benchmark</a>
+    <a href="#t64" class="nav-item sub-level">6.4 Prometheus Metrics</a>
+
+    <a href="#security" class="nav-item top-level">
+      <span class="nav-number">7</span> Security
+    </a>
+    <a href="#sec71" class="nav-item sub-level">7.1 Block Direct Access</a>
+    <a href="#sec72" class="nav-item sub-level">7.2 Token Scoping</a>
+    <a href="#sec73" class="nav-item sub-level">7.3 Consumer ACLs</a>
+    <a href="#sec74" class="nav-item sub-level">7.4 Additional Hardening</a>
+
+    <a href="#troubleshooting" class="nav-item top-level">
+      <span class="nav-number">8</span> Troubleshooting
+    </a>
+    <a href="#ts1" class="nav-item sub-level">Data plane not connecting</a>
+    <a href="#ts2" class="nav-item sub-level">Plugin not found / 404</a>
+    <a href="#ts3" class="nav-item sub-level">HTTP 401 (key-auth)</a>
+    <a href="#ts4" class="nav-item sub-level">HTTP 403 (firewall)</a>
+    <a href="#ts5" class="nav-item sub-level">Jira HTTP 401</a>
+    <a href="#ts6" class="nav-item sub-level">High latency</a>
+    <a href="#ts7" class="nav-item sub-level">Metrics missing</a>
+
+    <div class="nav-divider"></div>
+
+    <a href="#references" class="nav-item top-level">
+      <span class="nav-number">9</span> Reference Links
+    </a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main class="main">
+
+  <div class="page-header" id="top">
+    <h1>Kong AI Gateway — Secure MCP Proxy for Jira Cloud</h1>
+    <div class="meta">
+      <span class="meta-badge"><strong>Kong Gateway</strong> 3.12+</span>
+      <span class="meta-badge"><strong>decK</strong> 3.0</span>
+      <span class="meta-badge"><strong>Atlassian MCP Server</strong> authv2</span>
+      <span class="meta-badge"><strong>Updated</strong> 2026-05-27</span>
+    </div>
+  </div>
+
+  <div class="doc-body">
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — Architecture Overview
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="architecture-overview">
+      <h2><span class="h2-num">1</span>Architecture Overview</h2>
+
+      <h3>Request Flow</h3>
+      <p>Every MCP JSON-RPC call from a Python agent flows through three enforcement layers in Kong before reaching Jira Cloud.</p>
+
+      <div class="diagram-wrap">
+        <pre class="mermaid">
+flowchart LR
+    subgraph Client["MCP Client (Python SDK)"]
+        P["Python App\nmcp.ClientSession\nstreamablehttp_client"]
+    end
+
+    subgraph Kong["Kong AI Gateway  ·  EC2 / Konnect Data Plane"]
+        direction TB
+        KA["key-auth plugin\nconsumer authentication"]
+        PF["pre-function plugin\nLua — AI Firewall inspection"]
+        MCP["ai-mcp-proxy plugin\npassthrough-listener mode"]
+        RT["request-transformer plugin\ninject Jira Basic-Auth header"]
+        PR["prometheus plugin\nMCP metrics scrape"]
+    end
+
+    subgraph Firewall["AI Firewall"]
+        CAI["CalypsoAI / custom\nPOST /v1/inspect"]
+    end
+
+    subgraph Jira["Jira Cloud  ·  Atlassian"]
+        JMCP["Atlassian MCP Server\nmcp.atlassian.com\n/v1/mcp/authv2"]
+        JAPI["Jira REST API\nyoursite.atlassian.net"]
+    end
+
+    P -->|"MCP JSON-RPC + Kong API Key\n:8000/mcp"| KA
+    KA --> PF
+    PF -->|"POST body + metadata"| CAI
+    CAI -->|"200 OK / 403 violation"| PF
+    PF --> MCP
+    MCP --> RT
+    RT -->|"HTTPS + Authorization: Basic"| JMCP
+    JMCP --> JAPI
+    PR -.->|"scrape :8100/metrics"| Metrics["Prometheus / Grafana"]
+        </pre>
+      </div>
+
+      <h3>Component Roles</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Component</th><th>Role</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>mcp.ClientSession</code> (Python)</td>
+              <td>Sends MCP JSON-RPC 2.0 requests to Kong using <code>streamablehttp</code> transport with an <code>apikey</code> header</td>
+            </tr>
+            <tr>
+              <td>key-auth plugin</td>
+              <td>Authenticates Kong consumers (AI agents / humans) via API key; strips the key before forwarding upstream</td>
+            </tr>
+            <tr>
+              <td>pre-function plugin (Lua)</td>
+              <td>Intercepts every MCP request in the <code>access</code> phase, POSTs it to the AI firewall, and returns HTTP 403 on violation with a structured audit log</td>
+            </tr>
+            <tr>
+              <td>ai-mcp-proxy (passthrough-listener)</td>
+              <td>Transparently proxies MCP protocol traffic to the upstream Jira MCP server without REST-to-MCP conversion overhead</td>
+            </tr>
+            <tr>
+              <td>request-transformer plugin</td>
+              <td>Injects the Jira <code>Authorization: Basic &lt;base64&gt;</code> header — clients never handle Jira credentials directly</td>
+            </tr>
+            <tr>
+              <td>Jira MCP Server</td>
+              <td>Atlassian-hosted remote MCP server at <code>https://mcp.atlassian.com/v1/mcp/authv2</code> that translates MCP tool calls into Jira REST API calls</td>
+            </tr>
+            <tr>
+              <td>Prometheus plugin</td>
+              <td>Exposes <code>kong_ai_mcp_latency_ms</code>, <code>kong_ai_mcp_error_total</code>, and <code>kong_ai_mcp_response_body_size_bytes</code> metrics on <code>:8100/metrics</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — Prerequisites
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="prerequisites">
+      <h2><span class="h2-num">2</span>Prerequisites</h2>
+
+      <h3>Accounts and Access</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Requirement</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>AWS account</strong></td>
+              <td>IAM permissions to subscribe on Marketplace and launch EC2 instances</td>
+            </tr>
+            <tr>
+              <td><strong>Kong Konnect account</strong></td>
+              <td>Created during Marketplace subscription. Choose at least the <strong>Plus</strong> tier — AI Gateway features are Enterprise-tier</td>
+            </tr>
+            <tr>
+              <td><strong>Kong Gateway 3.12+</strong></td>
+              <td>Required for the <code>ai-mcp-proxy</code> plugin. Version 3.13+ required for per-tool ACLs</td>
+            </tr>
+            <tr>
+              <td><strong>Jira Cloud trial</strong></td>
+              <td>Free trial at <a href="https://www.atlassian.com/try/cloud/signup?bundle=jira-software" target="_blank">atlassian.net</a>; note your site URL (<code>yoursite.atlassian.net</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Jira API token</strong></td>
+              <td>Generated at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">id.atlassian.com</a>; scoped read-only via Jira project permissions</td>
+            </tr>
+            <tr>
+              <td><strong>AI Firewall endpoint</strong></td>
+              <td>CalypsoAI, Prompt Security, or any REST API accepting JSON and returning <code>{"allowed": true/false}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Software Tools</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code class="language-bash"># Python MCP SDK and HTTP client
+pip install mcp httpx
+
+# Kong decK CLI (macOS)
+brew install deck
+# Linux / Windows: https://github.com/Kong/deck/releases</code></pre>
+      </div>
+
+      <h3>Network Requirements</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Direction</th><th>Protocol / Port</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Inbound to EC2</td><td>TCP 8000</td><td>MCP proxy — client → Kong</td></tr>
+            <tr><td>Inbound to EC2</td><td>TCP 8100</td><td>Status API — Prometheus scrape</td></tr>
+            <tr><td>Inbound to EC2</td><td>TCP 8001 (restricted)</td><td>Admin API — management only</td></tr>
+            <tr><td>Outbound from EC2</td><td>HTTPS 443</td><td>Konnect control plane (<code>*.konghq.com</code>)</td></tr>
+            <tr><td>Outbound from EC2</td><td>HTTPS 443</td><td>Jira MCP Server (<code>mcp.atlassian.com</code>)</td></tr>
+            <tr><td>Outbound from EC2</td><td>HTTPS 443</td><td>AI Firewall endpoint</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — Setup Guide
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="setup-guide">
+      <h2><span class="h2-num">3</span>Step-by-Step Setup Guide</h2>
+
+      <!-- 3.1 -->
+      <div class="sub-section" id="s31">
+        <h3>3.1 Subscribe to Kong Konnect on AWS Marketplace</h3>
+        <ol class="steps">
+          <li><div>
+            Open one of the AWS Marketplace listings:
+            <ul style="margin-top:8px">
+              <li><strong>Kong Konnect Plus</strong> — 10 Services, 100M requests/mo: <a href="https://aws.amazon.com/marketplace/pp/prodview-77nhc3l2cn5im" target="_blank">prodview-77nhc3l2cn5im</a></li>
+              <li><strong>Kong Konnect Enterprise</strong> — unlimited: <a href="https://aws.amazon.com/marketplace/pp/prodview-7zds3oxx3ntjy" target="_blank">prodview-7zds3oxx3ntjy</a></li>
+            </ul>
+          </div></li>
+          <li><div>Click <strong>View purchase options</strong> → choose a 12-month contract or pay-as-you-go → click <strong>Subscribe</strong>.</div></li>
+          <li><div>Click <strong>Set up your account</strong> to be redirected to <a href="https://cloud.konghq.com" target="_blank">cloud.konghq.com</a>. Complete the Konnect registration — the subscription is linked to your AWS billing.</div></li>
+          <li><div>In Konnect, navigate to <strong>Gateway Manager</strong> and create a new <strong>Control Plane</strong> of type <em>Self-Managed Hybrid</em>. Name it (e.g., <code>jira-mcp-cp</code>).</div></li>
+        </ol>
+        <div class="callout note">
+          <span class="callout-icon">ℹ️</span>
+          <p>The <code>ai-mcp-proxy</code> plugin and MCP metrics require the <strong>AI Gateway add-on</strong>. Confirm it is enabled under <strong>Organization → Subscriptions</strong> in Konnect.</p>
+        </div>
+      </div>
+
+      <!-- 3.2 -->
+      <div class="sub-section" id="s32">
+        <h3>3.2 Deploy Kong Gateway Data Plane on EC2</h3>
+        <ol class="steps">
+          <li><div>
+            Launch an EC2 instance:
+            <ul style="margin-top:6px">
+              <li><strong>AMI:</strong> Amazon Linux 2023 or Ubuntu 22.04 LTS</li>
+              <li><strong>Instance type:</strong> <code>t3.medium</code> min for dev; <code>m5.xlarge</code> for production</li>
+              <li><strong>Security group:</strong> TCP 8000, 8100 inbound from your client CIDR</li>
+            </ul>
+          </div></li>
+          <li><div>
+            Install Kong Gateway 3.12+:
+            <div class="code-wrap" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><code class="language-bash"># Amazon Linux 2023
+sudo yum install -y https://download.konghq.com/gateway-3.x-amazonlinux-2023/Packages/k/kong-3.12.0.aws.amd64.rpm
+
+# Ubuntu 22.04
+curl -Lo kong.deb "https://packages.konghq.com/public/gateway-312/deb/ubuntu/pool/jammy/main/k/ko/kong_3.12.0/kong_3.12.0_amd64.deb"
+sudo dpkg -i kong.deb</code></pre>
+            </div>
+          </div></li>
+          <li><div>
+            Verify the installation:
+            <div class="code-wrap" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><code class="language-bash">kong version
+# Kong: 3.12.x</code></pre>
+            </div>
+          </div></li>
+        </ol>
+      </div>
+
+      <!-- 3.3 -->
+      <div class="sub-section" id="s33">
+        <h3>3.3 Connect EC2 Data Plane to Konnect Control Plane</h3>
+        <ol class="steps">
+          <li><div>In Konnect <strong>Gateway Manager → your control plane</strong>, click <strong>+ New Runtime Instance</strong> → choose <strong>Linux</strong>.</div></li>
+          <li><div>Click <strong>Generate Certificate</strong> — download the TLS certificate and private key pair.</div></li>
+          <li><div>
+            Store credentials securely via AWS SSM (recommended for production):
+            <div class="code-wrap" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><code class="language-bash">aws ssm put-parameter \
+  --name /kong/cluster_cert \
+  --type SecureString \
+  --value "$(cat cluster.crt)"
+
+aws ssm put-parameter \
+  --name /kong/cluster_cert_key \
+  --type SecureString \
+  --value "$(cat cluster.key)"</code></pre>
+            </div>
+          </div></li>
+          <li><div>
+            Copy the <strong>Configuration Parameters</strong> from the Konnect panel and create <code>/etc/kong/kong.conf</code>:
+            <div class="code-wrap" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">properties — /etc/kong/kong.conf</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><code class="language-bash">role = data_plane
+database = off
+konnect_mode = on
+cluster_mtls = pki
+lua_ssl_trusted_certificate = system
+
+# Replace with values from Konnect "Configuration Parameters" panel
+cluster_control_plane = &lt;YOUR_CP_NAME&gt;.cp0.konghq.com:443
+cluster_server_name   = &lt;YOUR_CP_NAME&gt;.cp0.konghq.com
+cluster_telemetry_endpoint    = &lt;YOUR_CP_NAME&gt;.tp0.konghq.com:443
+cluster_telemetry_server_name = &lt;YOUR_CP_NAME&gt;.tp0.konghq.com
+
+cluster_cert     = /etc/kong/cluster.crt
+cluster_cert_key = /etc/kong/cluster.key
+
+proxy_listen  = 0.0.0.0:8000
+status_listen = 0.0.0.0:8100</code></pre>
+            </div>
+          </div></li>
+          <li><div>
+            Copy the cert files and start Kong:
+            <div class="code-wrap" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><code class="language-bash">sudo cp cluster.crt /etc/kong/cluster.crt
+sudo cp cluster.key /etc/kong/cluster.key
+sudo kong start -c /etc/kong/kong.conf</code></pre>
+            </div>
+          </div></li>
+          <li><div>In Konnect, the data plane node should appear as <strong>Connected</strong> within 30 seconds.</div></li>
+        </ol>
+      </div>
+
+      <!-- 3.4 -->
+      <div class="sub-section" id="s34">
+        <h3>3.4 Create the Kong Service for Jira MCP</h3>
+        <p>The Kong Service points to the Atlassian-hosted remote MCP server. The current recommended endpoint using the <code>authv2</code> scheme is:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">url</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code>https://mcp.atlassian.com/v1/mcp/authv2</code></pre>
+        </div>
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <p>Atlassian's legacy SSE endpoint (<code>https://mcp.atlassian.com/v1/sse</code>) is <strong>deprecated and unsupported after June 30, 2026</strong>. Always use the <code>authv2</code> endpoint.</p>
+        </div>
+        <p>The decK service definition (see <a href="#deck-yaml">Section 4</a> for the full YAML):</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">services:
+  - name: jira-mcp-service
+    protocol: https
+    host: mcp.atlassian.com
+    port: 443
+    path: /v1/mcp/authv2
+    connect_timeout: 10000
+    read_timeout: 30000
+    write_timeout: 30000
+    retries: 3</code></pre>
+        </div>
+      </div>
+
+      <!-- 3.5 -->
+      <div class="sub-section" id="s35">
+        <h3>3.5 Create the Kong Route</h3>
+        <p>Attach a Route to the Service that the Python MCP client will connect to on Kong's proxy port:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">routes:
+  - name: jira-mcp-route
+    service:
+      name: jira-mcp-service
+    paths:
+      - /mcp
+    strip_path: false
+    protocols:
+      - http
+      - https
+    methods:
+      - POST
+      - GET</code></pre>
+        </div>
+      </div>
+
+      <!-- 3.6 -->
+      <div class="sub-section" id="s36">
+        <h3>3.6 Configure the AI MCP Proxy Plugin (passthrough-listener)</h3>
+        <p>In <code>passthrough-listener</code> mode the plugin accepts incoming MCP JSON-RPC traffic on the Route and proxies it verbatim to the upstream service. It does <strong>not</strong> perform REST-to-MCP conversion — Jira's MCP server handles the MCP protocol natively.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>mode</code></td><td><code>passthrough-listener</code></td><td>Required</td></tr>
+              <tr><td><code>max_request_body_size</code></td><td><code>1048576</code></td><td>1 MB; increase for bulk operations</td></tr>
+              <tr><td><code>logging.log_statistics</code></td><td><code>true</code></td><td>Enables <code>kong_ai_mcp_*</code> Prometheus metrics</td></tr>
+              <tr><td><code>logging.log_payloads</code></td><td><code>false</code></td><td>Set <code>true</code> only for debug — payloads may contain PII</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">plugins:
+  - name: ai-mcp-proxy
+    route: jira-mcp-route
+    config:
+      mode: passthrough-listener
+      max_request_body_size: 1048576
+      logging:
+        log_statistics: true
+        log_payloads: false</code></pre>
+        </div>
+      </div>
+
+      <!-- 3.7 -->
+      <div class="sub-section" id="s37">
+        <h3>3.7 Write and Configure the AI Firewall Pre-Function Plugin</h3>
+        <p>The pre-function plugin runs Lua code in the <code>access</code> phase — before the request reaches <code>ai-mcp-proxy</code> and is forwarded to Jira. It uses <code>resty.http</code> (bundled with Kong) to call the AI firewall REST endpoint synchronously.</p>
+
+        <h4>Firewall API Contract</h4>
+        <p>The Lua code assumes your AI firewall accepts:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">http request</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code>POST /v1/inspect
+Content-Type: application/json
+
+{ "body": "&lt;raw MCP JSON-RPC request&gt;", "route": "&lt;kong route name&gt;", "consumer": "&lt;kong consumer&gt;" }</code></pre>
+        </div>
+        <p>And returns one of:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-json">{ "allowed": true }
+{ "allowed": false, "reason": "PII detected in tool arguments" }</code></pre>
+        </div>
+
+        <h4>Lua Code (firewall_inspect.lua)</h4>
+        <p>Save for reference — this is inlined in the decK YAML in Section 4:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">lua</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-lua">-- AI Firewall inspection pre-function
+-- Runs in the access phase before ai-mcp-proxy forwards to Jira MCP.
+-- Blocks the request and returns 403 if the firewall signals a violation.
+-- Emits a structured audit log entry regardless of the verdict.
+
+local http  = require("resty.http")
+local cjson = require("cjson.safe")
+
+-- Configuration (override via Kong environment variables in production)
+local FIREWALL_URL     = os.getenv("KONG_FIREWALL_URL") or "https://firewall.example.com/v1/inspect"
+local FIREWALL_API_KEY = os.getenv("KONG_FIREWALL_API_KEY") or ""
+local TIMEOUT_MS       = 5000  -- milliseconds
+
+-- Read the raw MCP request body
+local raw_body = kong.request.get_raw_body()
+if not raw_body or raw_body == "" then
+  -- No body: allow (MCP initialize / ping messages have no payload to inspect)
+  return
+end
+
+-- Collect metadata for the audit record
+local consumer    = kong.client.get_consumer()
+local consumer_id = consumer and consumer.username or "anonymous"
+local route_name  = kong.router.get_route() and kong.router.get_route().name or "unknown"
+local request_id  = kong.request.get_header("x-request-id") or ngx.var.request_id or ""
+
+-- Build the inspection payload
+local inspection_payload = cjson.encode({
+  body       = raw_body,
+  route      = route_name,
+  consumer   = consumer_id,
+  request_id = request_id,
+})
+
+if not inspection_payload then
+  kong.log.err("[firewall] failed to encode inspection payload — allowing request")
+  return
+end
+
+-- Call the AI firewall
+local httpc = http.new()
+httpc:set_timeout(TIMEOUT_MS)
+
+local res, err = httpc:request_uri(FIREWALL_URL, {
+  method  = "POST",
+  headers = {
+    ["Content-Type"]  = "application/json",
+    ["Authorization"] = "Bearer " .. FIREWALL_API_KEY,
+    ["X-Request-Id"]  = request_id,
+  },
+  body       = inspection_payload,
+  ssl_verify = true,
+})
+
+-- Network / timeout error: fail-open to avoid blocking legitimate traffic
+-- during firewall downtime. Change return to kong.response.exit(503) for fail-closed.
+if err then
+  kong.log.err("[firewall] inspection call failed: " .. tostring(err) .. " — failing open")
+  return
+end
+
+-- Parse the firewall response
+local verdict, decode_err = cjson.decode(res.body)
+if decode_err or type(verdict) ~= "table" then
+  kong.log.err("[firewall] could not parse verdict response — failing open")
+  return
+end
+
+-- Emit structured audit log
+kong.log.info(cjson.encode({
+  event      = "mcp_firewall_audit",
+  allowed    = verdict.allowed,
+  reason     = verdict.reason or "",
+  consumer   = consumer_id,
+  route      = route_name,
+  request_id = request_id,
+  status     = res.status,
+}))
+
+-- Block if violation detected
+if verdict.allowed == false then
+  return kong.response.exit(403, cjson.encode({
+    error      = "Request blocked by AI firewall",
+    reason     = verdict.reason or "Policy violation",
+    request_id = request_id,
+  }), { ["Content-Type"] = "application/json" })
+end</code></pre>
+        </div>
+
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <p>In production, use the decK environment variable interpolation syntax <code>${{ env "DECK_FIREWALL_LUA" }}</code> to load the Lua from an environment variable instead of inlining it in YAML. This keeps credentials and logic out of version-controlled config files.</p>
+        </div>
+      </div>
+
+      <!-- 3.8 -->
+      <div class="sub-section" id="s38">
+        <h3>3.8 Configure Jira Cloud API Token Authentication in Kong</h3>
+
+        <h4>Create a Jira API Token</h4>
+        <ol class="steps">
+          <li><div>Log in to <a href="https://id.atlassian.com" target="_blank">id.atlassian.com</a> with your Atlassian account.</div></li>
+          <li><div>Go to <strong>Security → API tokens → Create API token</strong>.</div></li>
+          <li><div>Name it <code>kong-mcp-readonly</code> and click <strong>Create</strong>. Copy the token immediately — it is not shown again.</div></li>
+        </ol>
+        <div class="callout note">
+          <span class="callout-icon">ℹ️</span>
+          <p><strong>Token scope:</strong> The Atlassian MCP server honors the user's existing Jira access permissions. For a read-only integration, create a dedicated Atlassian account with only <em>Browse Projects</em> and <em>View Issue</em> Jira permissions and generate the token for that account.</p>
+        </div>
+
+        <h4>Enable API Token Auth on the Atlassian MCP Server</h4>
+        <p>API token authentication must be explicitly enabled by an org admin:</p>
+        <ol>
+          <li>In Jira, go to <strong>Settings → Rovo → MCP Server</strong>.</li>
+          <li>Enable <strong>API Token Authentication</strong>.</li>
+        </ol>
+
+        <h4>Encode Credentials and Inject via Kong</h4>
+        <p>The Atlassian MCP server uses HTTP Basic Auth: <code>Authorization: Basic base64(email:token)</code>.</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># Generate the base64 credential string
+echo -n "your-email@example.com:YOUR_API_TOKEN" | base64
+# Example output: eW91ci1lbWFpbEBleGFtcGxlLmNvbTpZT1VSX0FQSV9UT0tFTg==</code></pre>
+        </div>
+        <p>Inject via the <code>request-transformer</code> plugin (or use a Kong Vault reference):</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">plugins:
+  - name: request-transformer
+    route: jira-mcp-route
+    config:
+      remove:
+        headers:
+          - Authorization      # strip any auth header the client sends
+      add:
+        headers:
+          - "Authorization:Basic REPLACE_WITH_BASE64_EMAIL_COLON_TOKEN"</code></pre>
+        </div>
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <p><strong>Vault alternative:</strong> Use Kong Vaults with AWS Secrets Manager to avoid plain-text secrets in decK YAML. Reference syntax: <code>{vault://aws/kong-jira-auth}</code></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4 — Complete decK YAML
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="deck-yaml">
+      <h2><span class="h2-num">4</span>Complete decK YAML Configuration</h2>
+      <p>Apply with <code>deck gateway sync kong.yaml --konnect-token $KONNECT_TOKEN</code>.</p>
+
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">yaml — kong.yaml (decK format 3.0)</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code class="language-yaml">_format_version: "3.0"
+
+# ─────────────────────────────────────────────
+# Service — upstream is the Atlassian MCP server
+# ─────────────────────────────────────────────
+services:
+  - name: jira-mcp-service
+    protocol: https
+    host: mcp.atlassian.com
+    port: 443
+    path: /v1/mcp/authv2
+    connect_timeout: 10000
+    read_timeout: 30000
+    write_timeout: 30000
+    retries: 3
+
+    routes:
+      - name: jira-mcp-route
+        paths:
+          - /mcp
+        strip_path: false
+        protocols:
+          - http
+          - https
+        methods:
+          - POST
+          - GET
+
+# ─────────────────────────────────────────────
+# Consumers — one API key per calling agent/user
+# ─────────────────────────────────────────────
+consumers:
+  - username: python-agent-readonly
+    tags:
+      - env:prod
+      - access:readonly
+    keyauth_credentials:
+      - key: "REPLACE_WITH_A_RANDOM_32_CHAR_KEY"
+
+# ─────────────────────────────────────────────
+# Plugins
+# ─────────────────────────────────────────────
+plugins:
+
+  # 1. Consumer authentication — API key in header "apikey"
+  - name: key-auth
+    route: jira-mcp-route
+    config:
+      key_names:
+        - apikey
+      hide_credentials: true   # strip key before forwarding to Jira
+
+  # 2. AI Firewall — pre-function runs before ai-mcp-proxy
+  - name: pre-function
+    route: jira-mcp-route
+    config:
+      access:
+        - |
+            local http  = require("resty.http")
+            local cjson = require("cjson.safe")
+
+            local FIREWALL_URL     = os.getenv("KONG_FIREWALL_URL")     or "https://firewall.example.com/v1/inspect"
+            local FIREWALL_API_KEY = os.getenv("KONG_FIREWALL_API_KEY") or ""
+            local TIMEOUT_MS       = 5000
+
+            local raw_body = kong.request.get_raw_body()
+            if not raw_body or raw_body == "" then return end
+
+            local consumer    = kong.client.get_consumer()
+            local consumer_id = consumer and consumer.username or "anonymous"
+            local route_name  = kong.router.get_route() and kong.router.get_route().name or "unknown"
+            local request_id  = kong.request.get_header("x-request-id") or ngx.var.request_id or ""
+
+            local payload = cjson.encode({
+              body       = raw_body,
+              route      = route_name,
+              consumer   = consumer_id,
+              request_id = request_id,
+            })
+            if not payload then
+              kong.log.err("[firewall] encode failed — allowing")
+              return
+            end
+
+            local httpc = http.new()
+            httpc:set_timeout(TIMEOUT_MS)
+            local res, err = httpc:request_uri(FIREWALL_URL, {
+              method  = "POST",
+              headers = {
+                ["Content-Type"]  = "application/json",
+                ["Authorization"] = "Bearer " .. FIREWALL_API_KEY,
+                ["X-Request-Id"]  = request_id,
+              },
+              body       = payload,
+              ssl_verify = true,
+            })
+
+            if err then
+              kong.log.err("[firewall] call failed: " .. tostring(err) .. " — failing open")
+              return
+            end
+
+            local verdict, decode_err = cjson.decode(res.body)
+            if decode_err or type(verdict) ~= "table" then
+              kong.log.err("[firewall] bad response — failing open")
+              return
+            end
+
+            kong.log.info(cjson.encode({
+              event      = "mcp_firewall_audit",
+              allowed    = verdict.allowed,
+              reason     = verdict.reason or "",
+              consumer   = consumer_id,
+              route      = route_name,
+              request_id = request_id,
+            }))
+
+            if verdict.allowed == false then
+              return kong.response.exit(403, cjson.encode({
+                error      = "Request blocked by AI firewall",
+                reason     = verdict.reason or "Policy violation",
+                request_id = request_id,
+              }), { ["Content-Type"] = "application/json" })
+            end
+
+  # 3. Jira auth — inject Basic Auth for upstream Jira MCP server
+  #    Generate: echo -n "email:token" | base64
+  - name: request-transformer
+    route: jira-mcp-route
+    config:
+      remove:
+        headers:
+          - Authorization
+      add:
+        headers:
+          - "Authorization:Basic REPLACE_WITH_BASE64_EMAIL_COLON_TOKEN"
+
+  # 4. AI MCP Proxy — passthrough-listener mode
+  - name: ai-mcp-proxy
+    route: jira-mcp-route
+    config:
+      mode: passthrough-listener
+      max_request_body_size: 1048576
+      logging:
+        log_statistics: true
+        log_payloads: false
+
+  # 5. Prometheus — enable MCP-specific metrics
+  - name: prometheus
+    route: jira-mcp-route
+    config:
+      status_code_metrics: true
+      ai_metrics: true          # enables kong_ai_mcp_* histogram and counter metrics
+
+  # 6. Rate limiting — protect against runaway agents
+  - name: rate-limiting
+    route: jira-mcp-route
+    config:
+      minute: 120
+      policy: local
+      limit_by: consumer</code></pre>
+      </div>
+
+      <h3>Apply and Validate</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code class="language-bash"># Validate config locally (no network required)
+deck file validate kong.yaml
+
+# Sync to Konnect
+deck gateway sync kong.yaml \
+  --konnect-token "$KONNECT_TOKEN" \
+  --konnect-control-plane-name jira-mcp-cp
+
+# Preview what will change without applying
+deck gateway diff kong.yaml \
+  --konnect-token "$KONNECT_TOKEN" \
+  --konnect-control-plane-name jira-mcp-cp</code></pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 5 — Python Client
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="python-client">
+      <h2><span class="h2-num">5</span>Python MCP Client Example</h2>
+
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">python — jira_mcp_client.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code class="language-python">"""
+jira_mcp_client.py
+
+Connects to the Kong AI Gateway MCP proxy endpoint and calls
+read-only Jira MCP tools (list projects, search issues via JQL).
+
+Requirements:
+    pip install mcp httpx
+"""
+
+import asyncio
+import json
+import os
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+KONG_MCP_URL = os.environ.get("KONG_MCP_URL", "http://your-ec2-public-ip:8000/mcp")
+KONG_API_KEY = os.environ.get("KONG_API_KEY", "REPLACE_WITH_A_RANDOM_32_CHAR_KEY")
+JIRA_SITE    = os.environ.get("JIRA_SITE",    "yoursite.atlassian.net")
+
+
+async def list_available_tools(session: ClientSession) -> None:
+    """Print all MCP tools exposed by the Jira MCP server through Kong."""
+    tools_result = await session.list_tools()
+    print(f"\n── Available Jira MCP Tools ({len(tools_result.tools)}) ──")
+    for tool in tools_result.tools:
+        print(f"  • {tool.name}: {tool.description or '(no description)'}")
+
+
+async def list_jira_projects(session: ClientSession) -> list[dict]:
+    """List all Jira projects visible to the configured API token user."""
+    result = await session.call_tool("jira_list_projects", arguments={})
+    projects = json.loads(result.content[0].text) if result.content else []
+    print(f"\n── Jira Projects ({len(projects)}) ──")
+    for project in projects:
+        print(f"  [{project.get('key')}] {project.get('name')}")
+    return projects
+
+
+async def search_jira_issues(
+    session: ClientSession,
+    jql: str,
+    max_results: int = 10
+) -> list[dict]:
+    """Search Jira issues using JQL. Read-only — no write operations."""
+    result = await session.call_tool(
+        "jira_search_issues",
+        arguments={
+            "jql": jql,
+            "maxResults": max_results,
+            "fields": ["summary", "status", "assignee", "priority"],
+        },
+    )
+    issues = json.loads(result.content[0].text) if result.content else []
+    print(f"\n── Issues matching '{jql}' ({len(issues)}) ──")
+    for issue in issues:
+        key     = issue.get("key", "?")
+        summary = issue.get("fields", {}).get("summary", "")
+        status  = issue.get("fields", {}).get("status", {}).get("name", "?")
+        print(f"  {key}: [{status}] {summary}")
+    return issues
+
+
+async def main() -> None:
+    print(f"Connecting to Kong MCP proxy at {KONG_MCP_URL} …")
+
+    # streamablehttp_client uses the MCP Streamable HTTP transport (not the deprecated SSE).
+    # Kong key-auth plugin reads the API key from the "apikey" header.
+    async with streamablehttp_client(
+        url=KONG_MCP_URL,
+        headers={"apikey": KONG_API_KEY},
+    ) as (read_stream, write_stream, _):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            print("MCP session initialized.")
+
+            await list_available_tools(session)
+            await list_jira_projects(session)
+
+            await search_jira_issues(
+                session,
+                jql="project IS NOT EMPTY AND status != Done ORDER BY updated DESC",
+                max_results=10,
+            )
+
+
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+      </div>
+
+      <h3>Running the Client</h3>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><code class="language-bash">export KONG_MCP_URL="http://&lt;EC2_PUBLIC_IP&gt;:8000/mcp"
+export KONG_API_KEY="REPLACE_WITH_A_RANDOM_32_CHAR_KEY"
+export JIRA_SITE="yoursite.atlassian.net"
+
+python jira_mcp_client.py</code></pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 6 — Testing and Validation
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="testing">
+      <h2><span class="h2-num">6</span>Testing and Validation</h2>
+
+      <div class="sub-section" id="t61">
+        <h3>6.1 Verify Traffic Is Flowing Through Kong</h3>
+        <p>Send a raw MCP <code>tools/list</code> request to Kong and confirm Jira tools are returned:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl -s -X POST http://&lt;EC2_PUBLIC_IP&gt;:8000/mcp \
+  -H "Content-Type: application/json" \
+  -H "apikey: REPLACE_WITH_A_RANDOM_32_CHAR_KEY" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+  | jq .</code></pre>
+        </div>
+        <p>Expected: a JSON-RPC response with a <code>result.tools</code> array containing Jira tool names. Check Kong access logs confirm the hit:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">sudo tail -f /var/log/kong/access.log | grep "/mcp"</code></pre>
+        </div>
+      </div>
+
+      <div class="sub-section" id="t62">
+        <h3>6.2 Confirm the Pre-Function Plugin Is Firing</h3>
+        <p>Temporarily set <code>log_payloads: true</code> and examine Kong's error log for the structured audit JSON:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">sudo tail -f /var/log/kong/error.log | grep mcp_firewall_audit</code></pre>
+        </div>
+        <p>Expected log line:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-json">{
+  "event": "mcp_firewall_audit",
+  "allowed": true,
+  "reason": "",
+  "consumer": "python-agent-readonly",
+  "route": "jira-mcp-route",
+  "request_id": "abc123"
+}</code></pre>
+        </div>
+        <p>To confirm blocking works, temporarily configure your firewall to return <code>{"allowed": false, "reason": "test block"}</code> and verify Kong returns HTTP 403.</p>
+      </div>
+
+      <div class="sub-section" id="t63">
+        <h3>6.3 Benchmark Latency Overhead vs. Direct MCP Calls</h3>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash"># Install hyperfine
+brew install hyperfine   # macOS
+# Linux: https://github.com/sharkdp/hyperfine/releases
+
+# Baseline: direct Jira MCP (requires Jira credentials on the client)
+hyperfine --warmup 3 --runs 20 \
+  'curl -s -X POST https://mcp.atlassian.com/v1/mcp/authv2 \
+     -H "Authorization: Basic &lt;BASE64&gt;" \
+     -H "Content-Type: application/json" \
+     -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"'
+
+# Via Kong (key-auth + pre-function + ai-mcp-proxy)
+hyperfine --warmup 3 --runs 20 \
+  'curl -s -X POST http://&lt;EC2_PUBLIC_IP&gt;:8000/mcp \
+     -H "apikey: REPLACE_WITH_KEY" \
+     -H "Content-Type: application/json" \
+     -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"'</code></pre>
+        </div>
+
+        <h4>Typical Overhead Breakdown</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Added Latency</th></tr></thead>
+            <tbody>
+              <tr><td>Kong proxy overhead</td><td>1–3 ms</td></tr>
+              <tr><td>key-auth plugin</td><td>&lt;1 ms</td></tr>
+              <tr><td>pre-function + firewall HTTP call</td><td>5–50 ms (network-dependent)</td></tr>
+              <tr><td>ai-mcp-proxy passthrough</td><td>1–2 ms</td></tr>
+              <tr><td><strong>Total Kong overhead</strong></td><td><strong>~10–60 ms</strong> (dominated by firewall RTT)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="sub-section" id="t64">
+        <h3>6.4 Kong Prometheus Metrics for MCP</h3>
+        <p>Scrape from the Status API port (not the Admin API):</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl -s http://&lt;EC2_PUBLIC_IP&gt;:8100/metrics | grep kong_ai_mcp</code></pre>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Metric</th><th>Type</th><th>Labels</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>kong_ai_mcp_latency_ms_bucket</code></td>
+                <td>Histogram</td>
+                <td><code>service</code>, <code>route</code>, <code>method</code>, <code>tool_name</code>, <code>le</code></td>
+                <td>MCP server call latency in milliseconds</td>
+              </tr>
+              <tr>
+                <td><code>kong_ai_mcp_response_body_size_bytes_bucket</code></td>
+                <td>Histogram</td>
+                <td><code>service</code>, <code>route</code>, <code>method</code>, <code>tool_name</code></td>
+                <td>Response body size from Jira MCP server</td>
+              </tr>
+              <tr>
+                <td><code>kong_ai_mcp_error_total</code></td>
+                <td>Counter</td>
+                <td><code>service</code>, <code>route</code>, <code>method</code>, <code>tool_name</code>, <code>type</code></td>
+                <td>Total MCP server errors by error type</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Example PromQL Queries (Grafana)</h4>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">promql</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code># p99 MCP latency
+histogram_quantile(0.99,
+  rate(kong_ai_mcp_latency_ms_bucket[5m]))
+
+# MCP error rate per tool
+rate(kong_ai_mcp_error_total[5m])
+
+# Firewall blocks (HTTP 403 from Kong)
+rate(kong_http_requests_total{status="403", route="jira-mcp-route"}[5m])</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 7 — Security Considerations
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="security">
+      <h2><span class="h2-num">7</span>Security Considerations</h2>
+
+      <div class="sub-section" id="sec71">
+        <h3>7.1 Block Direct Access to the Jira MCP Server</h3>
+        <p>The architecture's security guarantee only holds if the Jira MCP endpoint cannot be reached directly, bypassing Kong.</p>
+
+        <h4>Option A — Atlassian IP Allowlist (Recommended)</h4>
+        <ol class="steps">
+          <li><div>In Jira, go to <strong>Settings → Security → IP Allowlisting</strong>.</div></li>
+          <li><div>Add <strong>only</strong> the Elastic IP of your Kong EC2 instance.</div></li>
+          <li><div>All other source IPs are denied at the Atlassian network boundary.</div></li>
+        </ol>
+
+        <h4>Option B — Kong-Only API Token</h4>
+        <p>Create a dedicated Atlassian account specifically for Kong with the minimum required permissions. Never distribute its API token to any MCP client directly.</p>
+      </div>
+
+      <div class="sub-section" id="sec72">
+        <h3>7.2 API Token Scoping (Read-Only vs. Read-Write)</h3>
+        <p>Atlassian does not support OAuth scopes on personal API tokens. Scope is controlled by <strong>Jira project permissions</strong> on the user account:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Use Case</th><th>Required Jira Permission</th></tr></thead>
+            <tbody>
+              <tr><td>Read-only (list projects, search issues)</td><td><em>Browse Projects</em> only</td></tr>
+              <tr><td>Read + comment</td><td><em>Browse Projects</em> + <em>Add Comments</em></td></tr>
+              <tr><td>Full write</td><td><em>Create Issues</em>, <em>Edit Issues</em>, <em>Delete Issues</em></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Create a dedicated Jira service account and assign it the minimum required project role.</p>
+      </div>
+
+      <div class="sub-section" id="sec73">
+        <h3>7.3 Consumer-Level ACLs with AI MCP Proxy</h3>
+        <p>The <code>ai-mcp-proxy</code> plugin supports per-tool ACLs in Kong 3.13+ with <code>conversion-listener</code> or <code>listener</code> modes. For <code>passthrough-listener</code> mode, implement ACLs at the Kong consumer level using the built-in ACL plugin:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-yaml">consumer_groups:
+  - name: mcp-readonly
+  - name: mcp-readwrite
+
+consumers:
+  - username: agent-readonly
+    tags: [access:readonly]
+  - username: agent-readwrite
+    tags: [access:readwrite]
+
+plugins:
+  - name: acl
+    route: jira-mcp-route
+    config:
+      allow:
+        - mcp-readonly
+        - mcp-readwrite
+      hide_groups_header: true</code></pre>
+        </div>
+        <p>Assign consumers to groups via the Admin API:</p>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code class="language-bash">curl -X POST http://localhost:8001/consumers/agent-readonly/acls \
+  -d "group=mcp-readonly"</code></pre>
+        </div>
+      </div>
+
+      <div class="sub-section" id="sec74">
+        <h3>7.4 Additional Hardening</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Control</th><th>Implementation</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>TLS everywhere</strong></td>
+                <td>Kong → Jira MCP is already HTTPS. Enforce HTTPS on the proxy port by disabling HTTP in Route protocols or adding an HTTPS-redirect plugin</td>
+              </tr>
+              <tr>
+                <td><strong>Secrets in vaults</strong></td>
+                <td>Use <code>{vault://aws/secret-name}</code> references in decK YAML to avoid plain-text credentials in version control</td>
+              </tr>
+              <tr>
+                <td><strong>Credential rotation</strong></td>
+                <td>Rotate Jira API token and Kong consumer API keys on a 90-day schedule. Use AWS Secrets Manager rotation with Lambda</td>
+              </tr>
+              <tr>
+                <td><strong>Kong audit log</strong></td>
+                <td>Set <code>audit_log = on</code> in <code>kong.conf</code> to record all Admin API changes</td>
+              </tr>
+              <tr>
+                <td><strong>Rate limiting</strong></td>
+                <td>The decK config includes a per-consumer rate limit of 120 req/min. Tune for your expected agent call volume</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 8 — Troubleshooting
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="troubleshooting">
+      <h2><span class="h2-num">8</span>Troubleshooting</h2>
+
+      <div id="ts1" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">Issue</span>
+          <span class="ts-card-title">Data plane not appearing as Connected in Konnect</span>
+        </div>
+        <div class="ts-card-body">
+          <div class="table-wrap" style="margin:0 0 12px">
+            <table>
+              <thead><tr><th>Symptom</th><th>Check</th></tr></thead>
+              <tbody>
+                <tr><td>Node stuck in "Connecting"</td><td>Verify <code>cluster_control_plane</code> hostname resolves from EC2: <code>nslookup &lt;cp&gt;.cp0.konghq.com</code></td></tr>
+                <tr><td>TLS handshake errors in error log</td><td>Confirm <code>cluster_cert</code> and <code>cluster_cert_key</code> paths are correct and readable by the <code>kong</code> user</td></tr>
+                <tr><td>Firewall blocking outbound</td><td>EC2 security group must allow outbound TCP 443 to <code>*.konghq.com</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="code-wrap" style="margin:0">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><code class="language-bash">sudo tail -200 /var/log/kong/error.log | grep -E "error|failed|cluster"</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ts2" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">Issue</span>
+          <span class="ts-card-title"><code>ai-mcp-proxy</code> plugin not found / returns 404</span>
+        </div>
+        <div class="ts-card-body">
+          <ul>
+            <li>Confirm Kong version is <strong>3.12+</strong>: <code>kong version</code></li>
+            <li>Confirm the AI Gateway license/add-on is active in Konnect under <strong>Organization → Subscriptions</strong></li>
+            <li>Check the plugin is installed: <code>kong plugins list | grep ai-mcp</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="ts3" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">HTTP 401</span>
+          <span class="ts-card-title">key-auth — Consumer credential rejected</span>
+        </div>
+        <div class="ts-card-body">
+          <ul>
+            <li>Confirm the <code>apikey</code> header is present and matches the consumer credential exactly (case-sensitive)</li>
+            <li>Verify the credential was synced: <code>deck gateway dump | grep keyauth</code></li>
+            <li>Confirm the <code>key-auth</code> plugin is scoped to the route, not globally (global scope may conflict)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="ts4" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">HTTP 403</span>
+          <span class="ts-card-title">AI Firewall blocking every request</span>
+        </div>
+        <div class="ts-card-body">
+          <p>Check <code>KONG_FIREWALL_URL</code> and <code>KONG_FIREWALL_API_KEY</code> are set on the EC2 instance. Test the firewall directly from EC2:</p>
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><code class="language-bash">curl -s -X POST "$KONG_FIREWALL_URL" \
+  -H "Authorization: Bearer $KONG_FIREWALL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"body":"{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\"}","route":"test","consumer":"test"}' \
+  | jq .</code></pre>
+          </div>
+          <p>If the firewall is unreachable, the Lua code <strong>fails open</strong> (allows the request). To switch to fail-closed, change the <code>return</code> on the <code>err</code> branch to <code>return kong.response.exit(503, "Firewall unavailable")</code>.</p>
+        </div>
+      </div>
+
+      <div id="ts5" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">HTTP 401</span>
+          <span class="ts-card-title">Jira MCP Server — upstream authentication failure</span>
+        </div>
+        <div class="ts-card-body">
+          <p>Decode and verify the <code>Authorization</code> header injected by <code>request-transformer</code>:</p>
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><code class="language-bash">echo "REPLACE_WITH_YOUR_BASE64_VALUE" | base64 --decode
+# Should output: your-email@example.com:YOUR_API_TOKEN</code></pre>
+          </div>
+          <ul style="margin-top:10px">
+            <li>Confirm API token auth is enabled in Jira: <strong>Settings → Rovo → MCP Server → API Token Authentication: ON</strong></li>
+            <li>Confirm the Atlassian account has access to the target Jira projects</li>
+            <li>Confirm the legacy SSE endpoint is not being used — switch to <code>/v1/mcp/authv2</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="ts6" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">Issue</span>
+          <span class="ts-card-title">High latency (&gt;500 ms)</span>
+        </div>
+        <div class="ts-card-body">
+          <p>Identify whether latency is in the firewall call or in Jira MCP using Kong's response headers:</p>
+          <div class="code-wrap">
+            <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><code class="language-bash">curl -v http://&lt;EC2&gt;:8000/mcp -H "apikey: KEY" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+  2>&amp;1 | grep -i "x-kong.*latency"</code></pre>
+          </div>
+          <ul style="margin-top:10px">
+            <li><code>X-Kong-Upstream-Latency</code> — time spent in Jira MCP</li>
+            <li><code>X-Kong-Proxy-Latency</code> — Kong + all plugin overhead (including firewall call)</li>
+            <li>If <code>X-Kong-Proxy-Latency</code> is high, deploy the AI firewall in the same AWS VPC and region as Kong to minimize RTT</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="ts7" class="ts-card">
+        <div class="ts-card-header">
+          <span class="ts-status error">Issue</span>
+          <span class="ts-card-title">Prometheus <code>kong_ai_mcp_*</code> metrics not appearing</span>
+        </div>
+        <div class="ts-card-body">
+          <ul>
+            <li>Confirm <code>ai_metrics: true</code> is set in the Prometheus plugin config</li>
+            <li>Confirm <code>logging.log_statistics: true</code> is set in the <code>ai-mcp-proxy</code> plugin config — <strong>both</strong> are required</li>
+            <li>At least one successful MCP call must have been made (metrics appear after the first data point)</li>
+            <li>Scrape from the <strong>Status API port (8100)</strong>, not the Admin API (8001):
+              <div class="code-wrap" style="margin-top:8px">
+                <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+                <pre><code class="language-bash">curl http://localhost:8100/metrics | grep kong_ai_mcp</code></pre>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 9 — Reference Links
+    ══════════════════════════════════════════════════════════ -->
+    <section class="doc-section" id="references">
+      <h2><span class="h2-num">9</span>Reference Links</h2>
+      <div class="table-wrap">
+        <table class="ref-table">
+          <thead><tr><th>Resource</th><th>URL</th></tr></thead>
+          <tbody>
+            <tr><td>Kong AI MCP Proxy Plugin Reference</td><td><a href="https://developer.konghq.com/plugins/ai-mcp-proxy/reference/" target="_blank">developer.konghq.com/plugins/ai-mcp-proxy/reference/</a></td></tr>
+            <tr><td>AI MCP Proxy: passthrough-listener example</td><td><a href="https://developer.konghq.com/plugins/ai-mcp-proxy/examples/passthrough-listener/" target="_blank">developer.konghq.com/plugins/ai-mcp-proxy/examples/passthrough-listener/</a></td></tr>
+            <tr><td>AI MCP Proxy: per-tool ACLs</td><td><a href="https://developer.konghq.com/plugins/ai-mcp-proxy/examples/conversion-listener-tool-acls/" target="_blank">developer.konghq.com/plugins/ai-mcp-proxy/examples/conversion-listener-tool-acls/</a></td></tr>
+            <tr><td>Observe MCP Traffic (Prometheus metrics)</td><td><a href="https://developer.konghq.com/mcp/observe-traffic-for-mcp-tools/" target="_blank">developer.konghq.com/mcp/observe-traffic-for-mcp-tools/</a></td></tr>
+            <tr><td>Kong Pre-Function Plugin</td><td><a href="https://developer.konghq.com/plugins/pre-function/" target="_blank">developer.konghq.com/plugins/pre-function/</a></td></tr>
+            <tr><td>Kong Prometheus Plugin</td><td><a href="https://developer.konghq.com/plugins/prometheus/" target="_blank">developer.konghq.com/plugins/prometheus/</a></td></tr>
+            <tr><td>decK 3.0 Upgrade Reference</td><td><a href="https://developer.konghq.com/deck/reference/3.0-upgrade/" target="_blank">developer.konghq.com/deck/reference/3.0-upgrade/</a></td></tr>
+            <tr><td>Kong Konnect Plus on AWS Marketplace</td><td><a href="https://aws.amazon.com/marketplace/pp/prodview-77nhc3l2cn5im" target="_blank">aws.amazon.com/marketplace/pp/prodview-77nhc3l2cn5im</a></td></tr>
+            <tr><td>Kong Konnect Enterprise on AWS Marketplace</td><td><a href="https://aws.amazon.com/marketplace/pp/prodview-7zds3oxx3ntjy" target="_blank">aws.amazon.com/marketplace/pp/prodview-7zds3oxx3ntjy</a></td></tr>
+            <tr><td>Konnect Hybrid Data Plane on Amazon ECS</td><td><a href="https://konghq.com/blog/engineering/implementing-a-hybrid-kong-konnect-data-plane-in-amazon-ecs" target="_blank">konghq.com/blog/engineering/…hybrid-kong-konnect-data-plane-in-amazon-ecs</a></td></tr>
+            <tr><td>Atlassian MCP Server — Getting Started</td><td><a href="https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/" target="_blank">support.atlassian.com/atlassian-rovo-mcp-server/…getting-started</a></td></tr>
+            <tr><td>atlassian/atlassian-mcp-server (GitHub)</td><td><a href="https://github.com/atlassian/atlassian-mcp-server" target="_blank">github.com/atlassian/atlassian-mcp-server</a></td></tr>
+            <tr><td>Jira API Token Management</td><td><a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">id.atlassian.com/manage-profile/security/api-tokens</a></td></tr>
+            <tr><td>MCP Python SDK</td><td><a href="https://github.com/modelcontextprotocol/python-sdk" target="_blank">github.com/modelcontextprotocol/python-sdk</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:24px">
+        <a href="#top" class="back-to-top">↑ Back to top</a>
+      </p>
+    </section>
+
+  </div><!-- /.doc-body -->
+</main><!-- /.main -->
+
+<script>
+  // ── Mermaid init ──────────────────────────────────────────────────────────
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#e0f7fa',
+      primaryTextColor: '#0f172a',
+      primaryBorderColor: '#00c2b5',
+      lineColor: '#475569',
+      secondaryColor: '#f1f5f9',
+      tertiaryColor: '#ffffff',
+      edgeLabelBackground: '#ffffff',
+      clusterBkg: '#f8fafc',
+      clusterBorder: '#cbd5e1',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis' },
+  });
+
+  // ── Syntax highlighting ───────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('pre code[class^="language-"]').forEach(el => {
+      hljs.highlightElement(el);
+    });
+  });
+
+  // ── Copy button ───────────────────────────────────────────────────────────
+  function copyCode(btn) {
+    const pre = btn.closest('.code-wrap').querySelector('pre');
+    const text = pre.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  // ── Scroll spy ────────────────────────────────────────────────────────────
+  const navLinks = document.querySelectorAll('.sidebar-nav a.nav-item');
+  const sectionIds = Array.from(navLinks)
+    .map(a => a.getAttribute('href').slice(1))
+    .filter(id => id && document.getElementById(id));
+
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+          // Also highlight the parent top-level if a sub-section is active
+          const activeLink = document.querySelector(`.sidebar-nav a[href="#${id}"]`);
+          if (activeLink && activeLink.classList.contains('sub-level')) {
+            // find parent top-level based on DOM order
+            const allItems = [...navLinks];
+            const idx = allItems.indexOf(activeLink);
+            for (let i = idx - 1; i >= 0; i--) {
+              if (allItems[i].classList.contains('top-level')) {
+                allItems[i].classList.add('active');
+                break;
+              }
+            }
+          }
+        }
+      });
+    },
+    { rootMargin: '-10% 0px -80% 0px', threshold: 0 }
+  );
+
+  sectionIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+
+</body>
+</html>

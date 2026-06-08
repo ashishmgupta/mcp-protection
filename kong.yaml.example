@@ -1,0 +1,69 @@
+_format_version: "3.0"
+
+services:
+  - name: jira-mcp-service
+    protocol: https
+    host: mcp.atlassian.com
+    port: 443
+    path: /v1/mcp
+    connect_timeout: 10000
+    read_timeout: 30000
+    write_timeout: 30000
+    retries: 3
+
+    routes:
+      - name: jira-mcp-route
+        paths:
+          - /mcp
+        strip_path: false
+        protocols:
+          - http
+          - https
+        methods:
+          - POST
+          - GET
+
+consumers:
+  - username: python-agent-readonly
+    keyauth_credentials:
+      - key: "YOUR_KONG_API_KEY"
+
+plugins:
+
+  # 1. Consumer authentication — API key in header "apikey"
+  - name: key-auth
+    route: jira-mcp-route
+    config:
+      key_names:
+        - apikey
+      hide_credentials: true
+
+  # 2. Inject Jira Basic Auth for upstream Jira MCP server
+  #    Generate: echo -n "email:api_token" | base64
+  - name: request-transformer
+    route: jira-mcp-route
+    config:
+      remove:
+        headers:
+          - Authorization
+      add:
+        headers:
+          - "Authorization:Basic YOUR_BASE64_EMAIL_COLON_ATLASSIAN_TOKEN"
+
+  # 3. AI MCP Proxy — passthrough-listener mode
+  - name: ai-mcp-proxy
+    route: jira-mcp-route
+    config:
+      mode: passthrough-listener
+      max_request_body_size: 1048576
+      logging:
+        log_statistics: true
+        log_payloads: false
+
+  # 4. AI Firewall — custom plugin (request + response scanning)
+  - name: mcp-firewall
+    route: jira-mcp-route
+    config:
+      firewall_host: "127.0.0.1"
+      firewall_port: 5000
+      timeout_ms: 3000
