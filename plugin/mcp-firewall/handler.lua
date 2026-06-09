@@ -1,13 +1,9 @@
 local MCP_Firewall = {
   PRIORITY = 950,
-  VERSION  = "1.1.0",
+  VERSION  = "1.2.3",
 }
 
--- ─────────────────────────────────────────────────────────────
--- Shared helper: open a TCP socket, POST body to the firewall,
--- return the HTTP status code from the response line.
--- Returns nil on any network error (caller decides fail-open/closed).
--- ─────────────────────────────────────────────────────────────
+-- POST body to firewall. Returns status code and full response body.
 local function call_firewall(conf, path, body)
   local sock = ngx.socket.tcp()
   sock:settimeout(conf.timeout_ms)
@@ -15,7 +11,7 @@ local function call_firewall(conf, path, body)
   local ok, err = sock:connect(conf.firewall_host, conf.firewall_port)
   if not ok then
     kong.log.warn("MCP_FIREWALL | UNREACHABLE | " .. tostring(err))
-    return nil
+    return nil, nil
   end
 
   local req = table.concat({
@@ -29,21 +25,30 @@ local function call_firewall(conf, path, body)
   })
 
   sock:send(req)
-  local status_line = sock:receive("*l")
-  sock:close()
 
+  -- Read status line
+  local status_line = sock:receive("*l")
   if not status_line then
-    return nil
+    sock:close()
+    return nil, nil
+  end
+  local code = tonumber(status_line:match("HTTP/%d+%.%d+ (%d+)"))
+
+  -- Skip response headers
+  while true do
+    local line = sock:receive("*l")
+    if not line or line == "" or line == "\r" then break end
   end
 
-  return tonumber(status_line:match("HTTP/%d+%.%d+ (%d+)"))
+  -- Read response body
+  local resp_body = sock:receive("*a") or ""
+  sock:close()
+
+  return code, resp_body
 end
 
 
--- ─────────────────────────────────────────────────────────────
--- REQUEST phase — inspect inbound MCP tool call before it
--- reaches the Atlassian MCP server.
--- ─────────────────────────────────────────────────────────────
+-- REQUEST phase
 function MCP_Firewall:access(conf)
   kong.service.request.enable_buffering()
 
@@ -53,20 +58,22 @@ function MCP_Firewall:access(conf)
   end
 
   local ct = kong.request.get_header("content-type") or ""
-  if not ct:find("application/json") then
+  if not ct:find("application/json", 1, true) then
     return
   end
 
   kong.log.warn("MCP_FIREWALL | REQUEST | INSPECTING | len=" .. #body)
+  kong.log.warn("MCP_FIREWALL | REQUEST | BODY | " .. body:sub(1, 500))
 
-  local code = call_firewall(conf, "/inspect", body)
+  local code, resp_body = call_firewall(conf, "/inspect", body)
 
   if code == nil then
-    kong.log.warn("MCP_FIREWALL | REQUEST | FIREWALL_UNREACHABLE — allowing")
+    kong.log.warn("MCP_FIREWALL | REQUEST | FIREWALL_UNREACHABLE | allowing")
     return
   end
 
   kong.log.warn("MCP_FIREWALL | REQUEST | firewall_status=" .. code)
+  kong.log.warn("MCP_FIREWALL | REQUEST | FIREWALL_RESPONSE | " .. (resp_body or ""):sub(1, 300))
 
   if code == 403 then
     kong.log.warn("MCP_FIREWALL | REQUEST | BLOCKED")
@@ -79,54 +86,85 @@ function MCP_Firewall:access(conf)
 end
 
 
--- ─────────────────────────────────────────────────────────────
--- RESPONSE phase — inspect MCP server response before it is
--- sent back to the client.
---
--- Kong automatically enables buffered proxying when this
--- function is present: the full upstream response body is
--- available via kong.response.get_raw_body() and nothing has
--- been sent to the client yet.
---
--- Catches: indirect prompt injection embedded in Jira ticket
--- content, reconnaissance data in tool responses, etc.
---
--- Note: only application/json responses are inspected.
--- text/event-stream (SSE) is skipped — buffering an open SSE
--- stream would block the connection indefinitely.
--- ─────────────────────────────────────────────────────────────
+-- RESPONSE phase
 function MCP_Firewall:response(conf)
   local ct = kong.response.get_header("content-type") or ""
 
-  if not ct:find("application/json") then
-    kong.log.warn("MCP_FIREWALL | RESPONSE | SKIP | content-type=" .. ct)
-    return
-  end
-
   local body = kong.response.get_raw_body()
   if not body or body == "" then
+    kong.log.warn("MCP_FIREWALL | RESPONSE | EMPTY BODY | content-type=" .. ct)
     return
   end
 
-  kong.log.warn("MCP_FIREWALL | RESPONSE | INSPECTING | len=" .. #body)
+  kong.log.warn("MCP_FIREWALL | RESPONSE | content-type=" .. ct .. " | body_len=" .. #body)
 
-  local code = call_firewall(conf, "/inspect-response", body)
+  -- application/json
+  if ct:find("application/json", 1, true) then
+    kong.log.warn("MCP_FIREWALL | RESPONSE | JSON BODY | " .. body:sub(1, 800))
 
-  if code == nil then
-    kong.log.warn("MCP_FIREWALL | RESPONSE | FIREWALL_UNREACHABLE — allowing")
+    local code, resp_body = call_firewall(conf, "/inspect-response", body)
+    if code == nil then
+      kong.log.warn("MCP_FIREWALL | RESPONSE | FIREWALL_UNREACHABLE | allowing")
+      return
+    end
+
+    kong.log.warn("MCP_FIREWALL | RESPONSE | firewall_status=" .. code)
+    kong.log.warn("MCP_FIREWALL | RESPONSE | FIREWALL_RESPONSE | " .. (resp_body or ""):sub(1, 300))
+
+    if code == 403 then
+      kong.log.warn("MCP_FIREWALL | RESPONSE | BLOCKED")
+      return kong.response.exit(403,
+        '{"error":"Response blocked — indirect prompt injection detected"}',
+        { ["Content-Type"] = "application/json" })
+    end
+
+    kong.log.warn("MCP_FIREWALL | RESPONSE | ALLOWED")
     return
   end
 
-  kong.log.warn("MCP_FIREWALL | RESPONSE | firewall_status=" .. code)
+  -- text/event-stream (SSE)
+  if ct:find("text/event-stream", 1, true) then
+    kong.log.warn("MCP_FIREWALL | RESPONSE | SSE | body_len=" .. #body)
+    kong.log.warn("MCP_FIREWALL | RESPONSE | SSE RAW BODY | " .. body:sub(1, 2000))
 
-  if code == 403 then
-    kong.log.warn("MCP_FIREWALL | RESPONSE | BLOCKED — indirect injection in MCP response")
-    return kong.response.exit(403,
-      '{"error":"Response blocked — indirect prompt injection detected in MCP server response"}',
-      { ["Content-Type"] = "application/json" })
+    local line_count = 0
+    local jsonrpc_count = 0
+
+    for data_line in body:gmatch("data: ([^\r\n]+)") do
+      line_count = line_count + 1
+      kong.log.warn("MCP_FIREWALL | RESPONSE | SSE LINE[" .. line_count .. "] len=" .. #data_line .. " | " .. data_line:sub(1, 500))
+
+      if data_line:find('"jsonrpc"') then
+        jsonrpc_count = jsonrpc_count + 1
+        kong.log.warn("MCP_FIREWALL | RESPONSE | SSE JSONRPC LINE[" .. line_count .. "] FULL | " .. data_line)
+
+        local code, resp_body = call_firewall(conf, "/inspect-response", data_line)
+        if code == nil then
+          kong.log.warn("MCP_FIREWALL | RESPONSE | FIREWALL_UNREACHABLE | allowing")
+          return
+        end
+
+        kong.log.warn("MCP_FIREWALL | RESPONSE | SSE firewall_status=" .. code .. " line=" .. line_count)
+        kong.log.warn("MCP_FIREWALL | RESPONSE | SSE FIREWALL_RESPONSE | " .. (resp_body or ""):sub(1, 500))
+
+        if code == 403 then
+          kong.log.warn("MCP_FIREWALL | RESPONSE | BLOCKED | line=" .. line_count)
+          return kong.response.exit(403,
+            '{"error":"Response blocked — indirect prompt injection detected in MCP server response"}',
+            { ["Content-Type"] = "application/json" })
+        end
+      end
+    end
+
+    kong.log.warn("MCP_FIREWALL | RESPONSE | SSE DONE | total_lines=" .. line_count .. " jsonrpc_lines=" .. jsonrpc_count)
+    if jsonrpc_count == 0 then
+      kong.log.warn("MCP_FIREWALL | RESPONSE | SSE WARNING | no jsonrpc lines found in SSE body")
+    end
+    kong.log.warn("MCP_FIREWALL | RESPONSE | SSE ALLOWED")
+    return
   end
 
-  kong.log.warn("MCP_FIREWALL | RESPONSE | ALLOWED")
+  kong.log.warn("MCP_FIREWALL | RESPONSE | SKIP | content-type=" .. ct)
 end
 
 
