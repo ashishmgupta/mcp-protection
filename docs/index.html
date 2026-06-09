@@ -351,9 +351,9 @@
   <!-- ── OVERVIEW ── -->
   <section id="overview">
     <h1>MCP Protection</h1>
-    <p>An AI firewall deployed as a Kong AI Gateway plugin that intercepts every MCP request before it reaches Atlassian Jira — inspecting it for prompt injection, data exfiltration, destructive operations, and 8 other attack categories.</p>
+    <p>An AI firewall built as a Kong plugin. It intercepts every MCP request before it reaches Atlassian Jira and checks it against 11 attack categories including prompt injection, data exfiltration and destructive operations.</p>
 
-    <p>The problem: MCP has no security at the protocol level. Any client — legitimate or rogue — can call Jira tools with arbitrary arguments. This project puts a security layer at the gateway so the protection is enforced regardless of which client or LLM is being used.</p>
+    <p>MCP has no security at the protocol level. Any client can call Jira tools with any arguments. This puts a security layer at the gateway so every request gets checked regardless of which client or LLM is used.</p>
 
     <table>
       <tr><th>Component</th><th>Role</th><th>Location</th></tr>
@@ -467,17 +467,17 @@
       </svg>
     </div>
 
-    <p>Two planes, two inspection points. The <strong>control plane</strong> (Kong Konnect, cloud) holds configuration and pushes it down to the data plane. The <strong>data plane</strong> (EC2) handles all live traffic — Kong Gateway at <code>:8000</code> and the AI Firewall at <code>:5000</code> run side by side on the same instance.</p>
+    <p>Kong Konnect is the control plane running in the cloud. It holds the config and pushes it to the EC2 data plane over an mTLS connection. All live MCP traffic goes through Kong at <code>:8000</code>. The AI Firewall runs on the same EC2 instance at <code>:5000</code>. Two inspection points: one on the request before it reaches Atlassian, one on the response before it reaches the client.</p>
   </section>
 
   <!-- ── PROTOCOLS ── -->
   <section id="protocols">
     <h2>Protocols: Standard API vs MCP</h2>
 
-    <p>The fundamental difference is <strong>who decides what to call and what to send</strong>.</p>
+    <p>The key difference is who decides what to call and what to send.</p>
 
     <h3>Standard REST API call</h3>
-    <p>The developer writes the exact request. The code is static. Every call is predictable.</p>
+    <p>The developer writes the exact request at code time. Every call is predictable.</p>
 
     <pre><code class="language-bash"># Developer writes this — every field is hardcoded by them
 GET /rest/api/3/issue/SCRUM-1 HTTP/1.1
@@ -494,12 +494,12 @@ HTTP/1.1 200 OK
   }
 }</code></pre>
 
-    <p>The developer controls: the URL, the method, the parameters. Nothing dynamic. No AI involved.</p>
+    <p>The developer controls the URL, method and parameters. No AI involved.</p>
 
     <h3>MCP call</h3>
-    <p>The developer calls a tool by name. The <strong>LLM or agent decides the arguments</strong> at runtime based on user input. This is what makes MCP powerful — and what creates the attack surface.</p>
+    <p>The developer calls a tool by name. The LLM decides the arguments at runtime based on user input. This creates the attack surface.</p>
 
-    <p>Step 1 — the developer writes this (tool call, not a URL):</p>
+    <p>The developer writes this:</p>
     <pre><code class="language-python">result = await session.call_tool(
     "getTeamworkGraphContext",
     arguments={
@@ -507,7 +507,7 @@ HTTP/1.1 200 OK
     }
 )</code></pre>
 
-    <p>Step 2 — the SDK turns that into this on the wire (JSON-RPC 2.0 over HTTP POST):</p>
+    <p>The SDK turns that into this on the wire:</p>
     <pre><code class="language-bash">POST /mcp HTTP/1.1
 Host: kong:8000
 Content-Type: application/json
@@ -525,7 +525,7 @@ apikey: &lt;API_KEY&gt;
   }
 }</code></pre>
 
-    <p>Step 3 — the MCP server (Atlassian) translates that tool call into a real Jira REST API call internally:</p>
+    <p>Atlassian's MCP server translates the tool call into a Jira REST call internally:</p>
     <pre><code class="language-bash"># This happens INSIDE Atlassian's MCP server — developer never sees it
 GET /rest/api/3/issue/SCRUM-1 HTTP/1.1
 Host: ashishguptaz.atlassian.net
@@ -544,7 +544,7 @@ Authorization: Bearer &lt;atlassian_internal_token&gt;</code></pre>
     </table>
 
     <div class="callout">
-      <p><strong>Why the firewall exists:</strong> In a REST API call, a developer would never write <code>objectIdentifier = "ignore all previous instructions"</code>. In MCP, an attacker can make the LLM put exactly that into <code>arguments.objectIdentifier</code> — and the MCP server will faithfully execute it. The firewall intercepts at the JSON-RPC body before the MCP server ever sees it.</p>
+      <p>In a REST call a developer would never write <code>objectIdentifier = "ignore all previous instructions"</code>. In MCP an attacker can make the LLM put exactly that into <code>arguments.objectIdentifier</code> and the MCP server will execute it. The firewall intercepts at the JSON-RPC body before the MCP server sees it.</p>
     </div>
 
     <h3>What flows through Kong in this project</h3>
@@ -577,7 +577,7 @@ HTTP/1.1 403 Forbidden
 
   <section id="pdive-jsonrpc">
     <h3>JSON-RPC 2.0</h3>
-    <p>MCP uses JSON-RPC 2.0 as its message format. It has nothing to do with REST — there are no URLs per resource, no HTTP verbs with meaning. There is one endpoint. Everything is a method call in the body.</p>
+    <p>MCP uses JSON-RPC 2.0 as its message format. There are no resource URLs, no HTTP verbs with meaning. There is one endpoint. Everything is a method call in the body.</p>
 
     <p>Three message types:</p>
 
@@ -603,12 +603,12 @@ HTTP/1.1 403 Forbidden
   "result": { ... }   // or "error": { "code": -32600, "message": "..." }
 }</code></pre>
 
-    <p>Why JSON-RPC? MCP needs bidirectional messaging — the server can push notifications to the client, not just respond to requests. REST has no standard for that. JSON-RPC gives a uniform envelope for both directions.</p>
+    <p>MCP needs bidirectional messaging. The server can push notifications to the client, not just respond. REST has no standard for that. JSON-RPC gives a consistent envelope for both directions.</p>
   </section>
 
   <section id="pdive-transports">
     <h3>The Three Transports</h3>
-    <p>JSON-RPC defines the message format. The transport defines how those messages travel. MCP supports three.</p>
+    <p>JSON-RPC is the message format. The transport is how those messages travel. MCP supports three.</p>
 
     <h4>STDIO</h4>
     <pre><code class="language-bash"># Client spawns the MCP server as a child process
@@ -616,7 +616,7 @@ HTTP/1.1 403 Forbidden
 
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{...}}' | mcp-server
 # → server writes response to stdout</code></pre>
-    <p>Local only. Used by Claude Desktop to talk to local MCP servers. No network, no auth headers — the OS process boundary is the security boundary.</p>
+    <p>Local only. Used by Claude Desktop to talk to local MCP servers. No network, no auth headers. The OS process boundary is the security boundary.</p>
 
     <h4>SSE — Server-Sent Events (being deprecated)</h4>
     <pre><code class="language-bash"># TWO separate HTTP connections:
@@ -641,7 +641,7 @@ Authorization: Basic &lt;base64&gt;
 Content-Type: application/json
 
 {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}</code></pre>
-    <p>Requests go up via POST. Responses come down via the open SSE stream. Two connections always open simultaneously.</p>
+    <p>Requests go up via POST. Responses come down the open SSE stream. Two connections are always open at the same time.</p>
     <div class="callout warn">
       <p><strong>Atlassian deprecation notice:</strong> After 30 June 2026, the SSE endpoint at <code>mcp.atlassian.com/v1/sse</code> will be removed. Migrate to Streamable HTTP at <code>mcp.atlassian.com/v1/mcp</code>. This was visible in the tool result in MCP Inspector.</p>
     </div>
@@ -665,7 +665,7 @@ HTTP/1.1 200 OK
 Content-Type: text/event-stream
 event: message
 data: {"jsonrpc":"2.0","id":1,"result":{...}}</code></pre>
-    <p>Same endpoint for everything. The server decides whether to stream the response or return it inline. This is what your Kong setup uses.</p>
+    <p>Single endpoint for everything. The server decides whether to stream the response or return it inline. This is what the Kong setup uses.</p>
 
     <table>
       <tr><th></th><th>STDIO</th><th>SSE</th><th>Streamable HTTP</th></tr>
@@ -737,7 +737,7 @@ data: {"jsonrpc":"2.0","id":1,"result":{...}}</code></pre>
   "jsonrpc": "2.0",
   "method": "notifications/initialized"
 }</code></pre>
-    <p>Client sends this after receiving the initialize response. No <code>id</code> — it is a notification, not a request. Server must not reply. The session is now active.</p>
+    <p>Client sends this after receiving the initialize response. No <code>id</code> field means it is a notification, not a request. Server does not reply. Session is now active.</p>
 
     <h4>Step 3 — logging/setLevel (notification)</h4>
     <pre><code class="language-json">{
@@ -745,7 +745,7 @@ data: {"jsonrpc":"2.0","id":1,"result":{...}}</code></pre>
   "method": "logging/setLevel",
   "params": { "level": "warning" }
 }</code></pre>
-    <p>Optional. Client tells the server what log level to emit. MCP Inspector sends this automatically.</p>
+    <p>Optional. Tells the server what log level to emit. MCP Inspector sends this automatically.</p>
 
     <h4>Step 4 — tools/list (request)</h4>
     <pre><code class="language-json">// Request
@@ -780,14 +780,14 @@ data: {"jsonrpc":"2.0","id":1,"result":{...}}</code></pre>
     ]
   }
 }</code></pre>
-    <p>The <code>annotations</code> block is MCP's way of telling the LLM about the tool's risk profile. <code>destructiveHint: true</code> would tell the LLM this tool can cause damage. The LLM uses this to decide whether to confirm with the user before calling.</p>
+    <p>The <code>annotations</code> block tells the LLM about the tool's risk profile. <code>destructiveHint: true</code> means the tool can cause damage. The LLM uses this to decide whether to ask the user before calling.</p>
 
     <h4>Step 5 — tools/call (next section)</h4>
   </section>
 
   <section id="pdive-sse">
     <h3>SSE Transport in Detail</h3>
-    <p>SSE (Server-Sent Events) is a standard W3C mechanism where the server pushes data over a persistent HTTP GET connection. MCP uses it as a response channel.</p>
+    <p>SSE is a W3C standard where the server pushes data over a persistent HTTP GET connection. MCP uses it as a response channel.</p>
 
     <pre><code class="language-bash"># The GET connection stays open. Server sends frames:
 HTTP/1.1 200 OK
@@ -807,35 +807,35 @@ data: /v1/messages?sessionId=dd21957e4e0060e460d770c3cd6fffa
 event: message
 data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25",...}}</code></pre>
 
-    <p>Why chunked? Because MCP tool responses can be large and streamed progressively. A Confluence page search might return results token-by-token as the server produces them, rather than waiting for the full response before sending anything.</p>
+    <p>MCP tool responses can be large. A Confluence search might stream results progressively rather than wait for the full response before sending.</p>
 
-    <p>The client side sends requests via a normal POST to the session URL — not over the SSE stream:</p>
+    <p>The client sends requests via POST to the session URL, not over the SSE stream:</p>
     <pre><code class="language-bash">POST /v1/messages?sessionId=dd21957e4e0060e460d770c3cd6fffa HTTP/1.1
 Host: mcp.atlassian.com
 Authorization: Basic &lt;base64&gt;
 Content-Type: application/json
 
 {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}</code></pre>
-    <p>The response to this POST arrives over the open GET connection, not as the HTTP response body of the POST. The POST itself returns <code>202 Accepted</code> with no body.</p>
+    <p>The response arrives over the open GET connection, not as the HTTP response body of the POST. The POST returns <code>202 Accepted</code> with no body.</p>
   </section>
 
   <section id="pdive-auth">
     <h3>Basic Auth</h3>
-    <p>Every HTTP request to Atlassian's MCP server carries this header:</p>
+    <p>Every request to Atlassian's MCP server carries this header:</p>
     <pre><code class="language-bash">Authorization: Basic &lt;base64(email:api_token)&gt;</code></pre>
 
     <p>What base64 encodes:</p>
     <pre><code class="language-bash">echo -n "ashishtechiez@gmail.com:ATATT3xFf..." | base64
 # → YXNoaXNodGVjaGllekBnbWFpbC5jb206QVRBVFQ...</code></pre>
 
-    <p>The colon is the separator — email, colon, token, all base64 together as one string. base64 is not encryption. Anyone who intercepts the header can decode it immediately. This is why HTTPS is mandatory.</p>
+    <p>The colon separates email from token. base64 is not encryption. Anyone who intercepts the header can decode it immediately. HTTPS is required.</p>
 
-    <p>In this project the client never holds Atlassian credentials. The Kong <code>request-transformer</code> plugin strips the client's <code>apikey</code> header and injects the <code>Authorization: Basic</code> header before the request reaches Atlassian. The credential lives only on the Kong EC2 instance.</p>
+    <p>The client never holds Atlassian credentials. Kong's <code>request-transformer</code> plugin strips the client's <code>apikey</code> header and injects the <code>Authorization: Basic</code> header before the request reaches Atlassian. The credential lives only on the EC2 instance.</p>
   </section>
 
   <section id="pdive-toolscall">
     <h3>tools/call End-to-End</h3>
-    <p>Full request/response for <code>atlassianUserInfo</code> as observed from MCP Inspector. The screenshot below maps directly to the JSON examples that follow.</p>
+    <p>Full request/response for <code>atlassianUserInfo</code> as observed from MCP Inspector.</p>
 
     <div class="screenshot">
       <div style="position:relative; display:inline-block; width:100%;">
@@ -906,13 +906,13 @@ data: {
 
     <p>Three things to note:</p>
     <ul>
-      <li>The actual data is a JSON string <em>inside</em> a JSON string — <code>text</code> contains serialised JSON. The MCP spec defines <code>content</code> as a list of typed blocks (text, image, resource). The tool author chose to JSON-encode the payload as a string rather than return a structured object.</li>
-      <li><code>isError: false</code> is explicit. When a tool call fails, <code>isError: true</code> and <code>content[0].text</code> contains the error message. The HTTP status is still 200 — tool errors are application-level, not transport-level.</li>
-      <li>The <code>id: 13</code> matches the request. If the client has multiple concurrent tool calls in flight, the id is what correlates the response to the right call.</li>
+      <li>The actual data is a JSON string inside a JSON string. <code>text</code> contains serialised JSON. The tool author chose to encode the payload as a string rather than return a structured object.</li>
+      <li><code>isError: false</code> is explicit. When a tool call fails, <code>isError: true</code> and <code>content[0].text</code> has the error message. HTTP status is still 200. Tool errors are application-level, not transport-level.</li>
+      <li><code>id: 13</code> matches the request. If the client has multiple tool calls in flight, the id is what links response to request.</li>
     </ul>
 
     <h4>What the firewall sees</h4>
-    <p>In this project, Kong intercepts the <code>tools/call</code> request <em>before</em> it reaches Atlassian. The firewall reads <code>params.name</code> and <code>params.arguments</code> and makes the block/allow decision. The SSE response from Atlassian passes through Kong unmodified (unless you wire the <code>/inspect-response</code> endpoint to a post-function plugin).</p>
+    <p>Kong intercepts the <code>tools/call</code> request before it reaches Atlassian. The firewall reads <code>params.name</code> and <code>params.arguments</code> and makes the block/allow decision.</p>
   </section>
 
   <hr />
@@ -921,7 +921,7 @@ data: {
   <section id="comp-atlassian">
     <h2>Components</h2>
     <h3>Atlassian Rovo MCP</h3>
-    <p>Atlassian's hosted MCP server. Exposes Jira as MCP tools — <code>getTeamworkGraphContext</code>, <code>searchJira</code>, etc. Authenticates via Basic Auth (email + Atlassian API token).</p>
+    <p>Atlassian's hosted MCP server. Exposes Jira as MCP tools including <code>getTeamworkGraphContext</code> and <code>searchJira</code>. Authenticates via Basic Auth using email and an Atlassian API token.</p>
 
     <table>
       <tr><th>Property</th><th>Value</th></tr>
@@ -932,13 +932,13 @@ data: {
     </table>
 
     <div class="callout warn">
-      <p><strong>Token gotcha:</strong> "No permission" errors mean you used the wrong token type. You need an <em>unscoped</em> Atlassian API token from id.atlassian.com — not an OAuth app token or a Rovo-specific token.</p>
+      <p><strong>Token gotcha:</strong> "No permission" errors usually mean wrong token type. You need an unscoped Atlassian API token from id.atlassian.com. Not an OAuth app token and not a Rovo-specific token.</p>
     </div>
   </section>
 
   <section id="comp-kong">
     <h3>Kong AI Gateway</h3>
-    <p>Acts as the enforcement point. All MCP traffic from any client hits Kong first. Kong handles:</p>
+    <p>The enforcement point. All MCP traffic hits Kong first. Kong handles:</p>
     <ul>
       <li><strong>key-auth</strong> — validates the <code>apikey</code> header before anything else runs</li>
       <li><strong>request-transformer</strong> — strips the client's auth header, injects the Atlassian Basic Auth header upstream</li>
@@ -946,12 +946,12 @@ data: {
       <li><strong>ai-mcp-proxy</strong> — Kong's built-in passthrough-listener mode for MCP protocol bridging</li>
     </ul>
 
-    <p>Kong runs on EC2. Configuration is declarative via <code>kong.yaml</code>.</p>
+    <p>Kong runs on EC2. Config is declarative via <code>kong.yaml</code> and pushed via <code>deck</code>.</p>
   </section>
 
   <section id="comp-plugin">
     <h3>Kong Lua Plugin — mcp-firewall</h3>
-    <p>A custom Kong plugin (<code>plugin/mcp-firewall/</code>) that runs on every inbound request. It reads the raw body, calls the Python firewall, and blocks or passes based on the response.</p>
+    <p>A custom Kong plugin in <code>plugin/mcp-firewall/</code>. It runs on every request, reads the raw JSON-RPC body, calls the Python firewall, and blocks or passes based on what comes back.</p>
 
     <pre><code class="language-lua">-- handler.lua (simplified)
 function MCP_Firewall:access(conf)
@@ -990,7 +990,7 @@ end</code></pre>
 
   <section id="comp-firewall">
     <h3>Python AI Firewall</h3>
-    <p>A Flask service (<code>mcp_firewall.py</code>) that inspects MCP JSON-RPC payloads. It extracts all string values from the payload recursively — method name, tool arguments, any nested fields — and runs them against 11 rule categories.</p>
+    <p>A Flask service in <code>mcp_firewall.py</code>. It extracts all string values from the JSON-RPC payload recursively including method name, tool arguments and nested fields, then runs them against 11 rule categories.</p>
 
     <table>
       <tr><th>#</th><th>Rule</th><th>Severity</th><th>Example trigger</th></tr>
@@ -1025,7 +1025,7 @@ end</code></pre>
     <h2>Setup</h2>
     <h3>1 — Kong Konnect Control Plane</h3>
 
-    <p>Kong Konnect is the cloud control plane (<code>cloud.konghq.com</code>). It holds your configuration and pushes it to the data plane. It never handles live MCP traffic — that all goes through the EC2 data plane.</p>
+    <p>Kong Konnect is the cloud control plane at <code>cloud.konghq.com</code>. It holds your config and pushes it to the data plane. Live MCP traffic goes through the EC2 data plane only.</p>
 
     <h4>How the data plane registers itself</h4>
     <p>The EC2 instance is not configured in Konnect manually. Instead, Kong on EC2 <strong>dials outbound</strong> to Konnect using a mutual TLS certificate pair. Konnect sees the connection and registers the node by its hostname (<code>ip-172-31-30-4</code>).</p>
@@ -1037,10 +1037,10 @@ EC2 (data plane) ──── outbound HTTPS :443 ────► cloud.konghq.c
                        Konnect presents: its own CA cert
                        ◄─── config pushed down over encrypted channel ───</code></pre>
 
-    <p>This is mutual TLS (mTLS) — not standard one-way TLS. Both sides authenticate each other:</p>
+    <p>This is mutual TLS (mTLS), not standard one-way TLS. Both sides authenticate each other:</p>
     <ul>
-      <li>EC2 proves its identity to Konnect using <code>cluster-cert</code> + <code>cert-key</code> — prevents rogue nodes pulling your config</li>
-      <li>EC2 verifies it is talking to the real Konnect CA — prevents your data plane being pointed at a fake control plane</li>
+      <li>EC2 proves its identity to Konnect using <code>cluster-cert</code> + <code>cert-key</code>. This prevents rogue nodes pulling your config.</li>
+      <li>EC2 verifies it is talking to the real Konnect CA. This prevents the data plane being pointed at a fake control plane.</li>
     </ul>
 
     <p>This means no inbound firewall rule is needed on EC2 for the control plane connection. Only port <code>8000</code> needs to be open inbound for MCP client traffic.</p>
@@ -1057,14 +1057,14 @@ EC2 (data plane) ──── outbound HTTPS :443 ────► cloud.konghq.c
     <div class="step">
       <div class="step-num">2</div>
       <div class="step-body">
-        <p>Konnect generates a certificate pair for the data plane. Download it — you get three files:</p>
+        <p>Konnect generates a certificate pair for the data plane. Download it. You get three files:</p>
         <table>
           <tr><th>File</th><th>Purpose</th></tr>
           <tr><td><code>cluster-cert</code></td><td>TLS certificate — data plane identity</td></tr>
           <tr><td><code>cert-key</code></td><td>TLS private key — never commit this</td></tr>
           <tr><td><code>config-parameters</code></td><td>Control plane endpoint URL + cluster name</td></tr>
         </table>
-        <p>These live in the <code>data/</code> folder locally. They are in <code>.gitignore</code> — do not commit them.</p>
+        <p>These live in the <code>data/</code> folder locally. They are in <code>.gitignore</code>. Do not commit them.</p>
       </div>
     </div>
 
@@ -1211,7 +1211,7 @@ sudo kong restart</code></pre>
 
   <section id="setup-response-scanning">
     <h3>5 — Response Scanning</h3>
-    <p>Response scanning is built into the <code>mcp-firewall</code> plugin via the Kong <code>response</code> phase — no separate plugin or configuration needed. It activates automatically once the plugin is loaded.</p>
+    <p>Response scanning is built into the <code>mcp-firewall</code> plugin via the Kong <code>response</code> phase. No separate plugin or config needed. It activates automatically once the plugin is loaded.</p>
 
     <p>How it works in the plugin (<code>handler.lua</code> v1.1.0):</p>
     <pre><code class="language-lua">function MCP_Firewall:response(conf)
@@ -1246,7 +1246,7 @@ end</code></pre>
     </div>
 
     <h4>What the response firewall checks</h4>
-    <p>The <code>/inspect-response</code> endpoint in <code>mcp_firewall.py</code> runs a subset of rules — only those relevant to content that could arrive in a Jira response:</p>
+    <p>The <code>/inspect-response</code> endpoint runs a subset of rules. Only the ones relevant to content that could arrive in a Jira response:</p>
     <table>
       <tr><th>Rule</th><th>What it catches in a response</th></tr>
       <tr><td>INDIRECT_INJECTION</td><td><code>[AI NOTE: …]</code>, <code>attention AI agent:</code>, hidden instructions in ticket fields</td></tr>
@@ -1255,7 +1255,7 @@ end</code></pre>
       <tr><td>RECONNAISSANCE</td><td>Instructions to enumerate users embedded in a comment</td></tr>
     </table>
 
-    <p>The request-side rules (prompt injection, exfiltration, etc.) are not applied to responses — those patterns only make sense as outbound instructions, not as content in a Jira ticket body.</p>
+    <p>The request-side rules (prompt injection, exfiltration, etc.) are not applied to responses. Those patterns only make sense as outbound instructions, not as content in a Jira ticket body.</p>
 
     <h4>Update the plugin on EC2</h4>
     <span class="cmd">scp plugin/mcp-firewall/handler.lua ubuntu@&lt;EC2_IP&gt;:~/handler.lua</span>
@@ -1301,13 +1301,13 @@ end</code></pre>
     </div>
 
     <div class="callout">
-      <p><strong>Note:</strong> Claude Code will refuse to make a malicious MCP call on its own — its safety training fires before the tool call is made. The firewall is relevant for clients that <em>don't</em> have this safety layer.</p>
+      <p><strong>Note:</strong> Claude Code will refuse to make a malicious MCP call on its own. Its safety training fires before the tool call is made. The firewall matters for clients that do not have this safety layer.</p>
     </div>
   </section>
 
   <section id="test-direct">
-    <h3>Direct HTTP Abuse — Stolen API Key</h3>
-    <p>Simulates a rogue script or attacker with a leaked API key. No AI involved — raw HTTP POST to Kong.</p>
+    <h3>Direct HTTP Abuse</h3>
+    <p>Simulates a rogue script or attacker with a leaked API key. No AI involved. Raw HTTP POST to Kong.</p>
 
     <span class="cmd">python tests/test_direct_http.py</span>
     <span class="cmd">python tests/test_direct_http.py --attack injection</span>
@@ -1356,7 +1356,7 @@ Content-Type: application/json
     <span class="cmd">python tests/test_langchain_agent.py --simulate --attack injection</span>
     <span class="cmd">python tests/test_langchain_agent.py --simulate --all</span>
 
-    <p>Use <code>--simulate</code> to bypass the LLM decision step and call MCP directly — this represents a non-Claude LLM (GPT, Llama, Mistral) or a jailbroken model that would pass attacker input through without refusing.</p>
+    <p>Use <code>--simulate</code> to bypass the LLM decision step and call MCP directly. This represents a non-Claude LLM (GPT, Llama, Mistral) or a jailbroken model that passes attacker input through without refusing.</p>
 
     <pre><code class="language-python"># What LangChain does — no safety check on arguments
 client = MultiServerMCPClient({"jira": {"url": KONG_URL, "transport": "streamable_http"}})
@@ -1440,7 +1440,7 @@ Step 2: Agent follows injected instruction
     </table>
 
     <div class="callout">
-      <p><strong>Why RESPONSE | SKIP?</strong> Atlassian's MCP server returns tool responses as <code>text/event-stream</code> (SSE). The response phase only inspects <code>application/json</code> — buffering an open SSE stream would block the connection. For JSON responses (e.g. from conversion-listener mode or non-streaming tools), the response phase would fire fully.</p>
+      <p><strong>Why RESPONSE | SKIP?</strong> Atlassian returns tool responses as <code>text/event-stream</code> (SSE). The response phase only inspects <code>application/json</code>. Buffering an open SSE stream would block the connection. For JSON responses the response phase fires fully.</p>
     </div>
   </section>
 
@@ -1456,7 +1456,7 @@ Step 2: Agent follows injected instruction
       <div class="screenshot-caption">Konnect Debugger — Logs tab for a single POST /mcp trace. Span names confirm which Kong phase each log line came from.</div>
     </div>
 
-    <p>Reading the Konnect log (bottom to top — chronological order):</p>
+    <p>Reading the Konnect log (bottom to top, chronological order):</p>
 
     <table>
       <tr><th>Log message</th><th>Level</th><th>Span name</th><th>What it confirms</th></tr>
@@ -1468,11 +1468,11 @@ Step 2: Agent follows injected instruction
       <tr><td><code>MCP_FIREWALL | RESPONSE | SKIP | content-type=text/event-stream</code></td><td>Warn</td><td><code>kong.response.plugin.mcp-firewall</code></td><td>Plugin running in response phase — SSE skipped</td></tr>
     </table>
 
-    <p>The span names are the key evidence:</p>
+    <p>The span names confirm which phase each log line came from:</p>
     <ul>
-      <li><code>kong.access.plugin.mcp-firewall</code> — request inspection running in the correct phase</li>
-      <li><code>kong.response.plugin.mcp-firewall</code> — response inspection running in the correct phase</li>
-      <li><code>kong.phase.response</code> — Kong's internal response phase (upstream connection), separate from the plugin</li>
+      <li><code>kong.access.plugin.mcp-firewall</code>: request inspection in the access phase</li>
+      <li><code>kong.response.plugin.mcp-firewall</code>: response inspection in the response phase</li>
+      <li><code>kong.phase.response</code>: Kong's internal upstream connection phase, separate from the plugin</li>
     </ul>
   </section>
 
@@ -1482,7 +1482,7 @@ Step 2: Agent follows injected instruction
   <section id="threat-model">
     <h2>Threat Model</h2>
 
-    <p>The firewall is relevant when the MCP client has no safety filter. Here's when each scenario applies:</p>
+    <p>The firewall matters when the MCP client has no safety filter built in.</p>
 
     <table>
       <tr><th>Client</th><th>Safety filter?</th><th>Firewall needed?</th></tr>
@@ -1493,7 +1493,7 @@ Step 2: Agent follows injected instruction
       <tr><td>Indirect injection via Jira content</td><td>Partial (depends on agent)</td><td><strong>Critical</strong></td></tr>
     </table>
 
-    <p>Industry validation: the AEGIS paper (arxiv 2603.12621) describes this exact pattern as a pre-execution firewall. OWASP LLM Top 10 (2025) lists Prompt Injection as #1 threat, found in 73% of production deployments.</p>
+    <p>The AEGIS paper (arxiv 2603.12621) describes this exact pattern as a pre-execution firewall. OWASP LLM Top 10 (2025) lists Prompt Injection as the #1 threat, found in 73% of production deployments.</p>
   </section>
 
   <section id="gaps">
@@ -1523,7 +1523,7 @@ Step 2: Agent follows injected instruction
       </tr>
     </table>
 
-    <p>Regex-only detection rate: ~40–60%. Hybrid regex + LLM semantic layer: ~95%. The current implementation is the correct baseline — it catches low-effort attacks cheaply before escalating to more expensive checks.</p>
+    <p>Regex-only detection rate is around 40-60%. Adding an LLM semantic layer on top gets it to around 95%. The current implementation is the baseline. It catches low-effort attacks cheaply and is the right starting point.</p>
   </section>
 
 </main>
